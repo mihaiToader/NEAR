@@ -1,10 +1,7 @@
 package com.mtoader.near
 
 import android.Manifest
-import android.content.Context
-import android.content.pm.PackageManager
 import android.os.Bundle
-import android.support.v4.content.ContextCompat
 import android.support.v7.app.AppCompatActivity
 import android.util.Log
 import android.view.View
@@ -24,7 +21,7 @@ class MainActivity : AppCompatActivity() {
     private var listView: ListView? = null
 
     private val STRATEGY = Strategy.P2P_STAR
-    private val codeName = CodenameGenerator.generate()
+    private val codeName = CodeName.generate()
 
     private val REQUIRED_PERMISSIONS = arrayOf(Manifest.permission.BLUETOOTH,
             Manifest.permission.BLUETOOTH_ADMIN,
