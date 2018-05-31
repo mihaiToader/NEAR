@@ -2,4 +2,10 @@
     <string name="app_name">near</string>
     <string name="searchBtn">Search</string>
     <string name="name">Name</string>
+    <string name="hideLogs">Hide logs</string>
+    <string name="showLogs">Show logs</string>
+    <string name="error_missing_permissions">Error missing permissions</string>
+
+    <string name="toast_connected">Connected to %s</string>
+    <string name="toast_disconnected">Disconnected from %s</string>
 </resources>

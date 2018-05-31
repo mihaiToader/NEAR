@@ -15,14 +15,49 @@
             android:id="@+id/foundDevicesListView"
             android:layout_width="match_parent"
             android:layout_height="0dip"
-            android:layout_weight="1" />
+            android:layout_weight="1" >
+        </ListView>
 
-        <Button
-            android:id="@+id/btnSearch"
+        <LinearLayout
+            android:id="@+id/logsView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_weight="0"
-            android:onClick="searchDevices"
-            android:text="@string/searchBtn" />
+            android:layout_marginTop="10dp"
+            android:background="@drawable/border"
+            android:orientation="vertical"
+            android:padding="15dp">
+
+            <TextView
+                android:id="@+id/logsTextView"
+                android:layout_width="match_parent"
+                android:layout_height="120dp"
+                android:gravity="bottom"
+                android:text="" />
+        </LinearLayout>
+
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal">
+
+            <Button
+                android:id="@+id/btnSearch"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="search"
+                android:text="@string/searchBtn"
+                style="?android:attr/borderlessButtonStyle"/>
+
+            <Button
+                android:id="@+id/hideLogsButton"
+                style="?android:attr/borderlessButtonStyle"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:onClick="hideLogs"
+                android:text="@string/hideLogs" />
+
+        </LinearLayout>
     </LinearLayout>
 </android.support.constraint.ConstraintLayout>
