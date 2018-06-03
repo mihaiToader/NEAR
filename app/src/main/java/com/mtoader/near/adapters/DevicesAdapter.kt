@@ -7,9 +7,10 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
 import com.mtoader.near.R
+import com.mtoader.near.model.Endpoint
 import java.util.ArrayList
 
-class DevicesAdapter(private val context: Context? = null, private val listOfDevices: ArrayList<String> = ArrayList()) : BaseAdapter() {
+class DevicesAdapter(private val context: Context? = null, private val listOfDevices: ArrayList<Endpoint> = ArrayList()) : BaseAdapter() {
     private class ViewHolder(row: View?) {
         var txtName: TextView? = null
 
@@ -31,7 +32,7 @@ class DevicesAdapter(private val context: Context? = null, private val listOfDev
             viewHolder = view.tag as ViewHolder
         }
 
-        viewHolder.txtName?.text = listOfDevices[position]
+        viewHolder.txtName?.text = listOfDevices[position].name
 
         return view as View
     }

@@ -8,4 +8,12 @@
 
     <string name="toast_connected">Connected to %s</string>
     <string name="toast_disconnected">Disconnected from %s</string>
+    <string name="chose_a_name">Chose a name</string>
+    <string name="ok">OK</string>
+
+
+    <string name="device_name">Device: %1$s</string>
+    <string name="advertise">ADVERTISE</string>
+    <string name="discover">DISCOVER</string>
+    <string name="sos">SOS</string>
 </resources>

@@ -17,6 +17,7 @@ import com.google.android.gms.nearby.connection.*
 import com.google.android.gms.tasks.OnFailureListener
 import com.google.android.gms.tasks.OnSuccessListener
 import com.mtoader.near.R
+import com.mtoader.near.model.Endpoint
 import com.mtoader.near.nearbyConnections.Constants.TAG
 import java.util.*
 
@@ -269,6 +270,7 @@ abstract class ConnectionsActivity : AppCompatActivity() {
                             }
 
                             override fun onEndpointLost(endpointId: String) {
+//                                onEndpointDiscoverLost(mDiscoveredEndpoints[endpointId])
                                 logD(String.format("onEndpointLost(endpointId=%s)", endpointId))
                             }
                         },
@@ -368,6 +370,8 @@ abstract class ConnectionsActivity : AppCompatActivity() {
     /** Called when someone has disconnected. Override this method to act on the event.  */
     protected open fun onEndpointDisconnected(endpoint: Endpoint) {}
 
+
+    protected open fun onEndpointDiscoverLost(endpoint: Endpoint?) {}
     /**
      * Sends a [Payload] to all currently connected endpoints.
      *
@@ -415,26 +419,6 @@ abstract class ConnectionsActivity : AppCompatActivity() {
     @CallSuper
     protected open fun logE(msg: String, e: Throwable) {
         Log.e(TAG, msg, e)
-    }
-
-    /** Represents a device we can talk to.  */
-    protected class Endpoint constructor(val id: String, val name: String) {
-
-        override fun equals(obj: Any?): Boolean {
-            if (obj != null && obj is Endpoint) {
-                val other = obj as Endpoint?
-                return id == other!!.id
-            }
-            return false
-        }
-
-        override fun hashCode(): Int {
-            return id.hashCode()
-        }
-
-        override fun toString(): String {
-            return String.format("Endpoint{id=%s, name=%s}", id, name)
-        }
     }
 
     companion object {

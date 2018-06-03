@@ -11,53 +11,105 @@
         android:layout_height="match_parent"
         android:orientation="vertical">
 
-        <ListView
-            android:id="@+id/foundDevicesListView"
-            android:layout_width="match_parent"
-            android:layout_height="0dip"
-            android:layout_weight="1" >
-        </ListView>
-
-        <LinearLayout
-            android:id="@+id/logsView"
+        <TextView
+            android:id="@+id/deviceNameTextView"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="10dp"
-            android:background="@drawable/border"
-            android:orientation="vertical"
-            android:padding="15dp">
+            android:text=""
+            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
-            <TextView
-                android:id="@+id/logsTextView"
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <ListView
+                android:id="@+id/foundDevicesListView"
                 android:layout_width="match_parent"
-                android:layout_height="120dp"
-                android:gravity="bottom"
-                android:text="" />
+                android:layout_height="0dip"
+                android:layout_weight="1" />
+
+            <LinearLayout
+                android:id="@+id/logsView"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="10dp"
+                android:background="@drawable/border"
+                android:orientation="vertical"
+                android:padding="15dp">
+
+                <TextView
+                    android:id="@+id/logsTextView"
+                    android:layout_width="match_parent"
+                    android:layout_height="120dp"
+                    android:gravity="bottom"
+                    android:text="" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
+
+                <Button
+                    android:id="@+id/btnAdvOrDisc"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="advertiseOrDiscover"
+                    android:text="@string/advertise" />
+
+                <Button
+                    android:id="@+id/button"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:background="@android:color/holo_red_dark"
+                    android:text="@string/sos" />
+
+                <Button
+                    android:id="@+id/hideLogsButton"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="hideLogs"
+                    android:text="@string/hideLogs" />
+
+            </LinearLayout>
+
         </LinearLayout>
 
-        <LinearLayout
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:orientation="horizontal">
+        <!--<LinearLayout-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="match_parent"-->
+            <!--android:orientation="vertical">-->
 
-            <Button
-                android:id="@+id/btnSearch"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="search"
-                android:text="@string/searchBtn"
-                style="?android:attr/borderlessButtonStyle"/>
+            <!--<LinearLayout-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="match_parent"-->
+                <!--android:gravity="bottom"-->
+                <!--android:orientation="horizontal">-->
 
-            <Button
-                android:id="@+id/hideLogsButton"
-                style="?android:attr/borderlessButtonStyle"
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:onClick="hideLogs"
-                android:text="@string/hideLogs" />
+                <!--<EditText-->
+                    <!--android:id="@+id/editText"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_weight="1"-->
+                    <!--android:ems="10"-->
+                    <!--android:inputType="textPersonName"-->
+                    <!--android:text="Name" />-->
 
-        </LinearLayout>
+                <!--<Button-->
+                    <!--android:id="@+id/button"-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_weight="1"-->
+                    <!--android:text="Button" />-->
+            <!--</LinearLayout>-->
+        <!--</LinearLayout>-->
+
     </LinearLayout>
 </android.support.constraint.ConstraintLayout>

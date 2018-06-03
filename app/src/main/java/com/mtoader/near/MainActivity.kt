@@ -1,32 +1,36 @@
 package com.mtoader.near
 
-import android.content.Context
-import android.hardware.SensorManager
-import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.support.v7.app.AppCompatActivity
 import android.text.SpannableString
 import android.text.format.DateFormat
-import android.view.View
-import android.widget.ListView
-import com.mtoader.near.adapters.DevicesAdapter
-import java.util.*
-import android.widget.TextView
 import android.text.method.ScrollingMovementMethod
 import android.text.style.ForegroundColorSpan
+import android.view.View
 import android.widget.Button
+import android.widget.ListView
+import android.widget.TextView
 import android.widget.Toast
 import com.google.android.gms.nearby.connection.ConnectionInfo
 import com.google.android.gms.nearby.connection.Strategy
+import com.mtoader.near.adapters.DevicesAdapter
+import com.mtoader.near.model.Endpoint
 import com.mtoader.near.nearbyConnections.ConnectionsActivity
+import java.util.*
+import android.provider.AlarmClock.EXTRA_MESSAGE
+import android.content.Intent
+import android.widget.AdapterView
+import android.widget.AdapterView.OnItemClickListener
+
+
 
 
 class MainActivity : ConnectionsActivity() {
-    private var devices: ArrayList<String> = ArrayList()
+    private var devices: ArrayList<Endpoint> = ArrayList()
     private var adapter: DevicesAdapter? = null
     private var listView: ListView? = null
+    private var deviceNameTextView: TextView? = null
 
     /** A running log of debug messages. Only visible when DEBUG=true.  */
     private var logsTextView: TextView? = null
@@ -34,11 +38,13 @@ class MainActivity : ConnectionsActivity() {
 
     private var hideLogsBtn: Button? = null
 
+    private var advertiseDiscoverBtn: Button? = null
+
     /**
      * The connection strategy we'll use for Nearby Connections. In this case, we've decided on
      * P2P_STAR, which is a combination of Bluetooth Classic and WiFi Hotspots.
      */
-    private val STRATEGY = Strategy.P2P_STAR
+    private val STRATEGY = Strategy.P2P_CLUSTER
 
     /**
      * Advertise for 30 seconds before going back to discovering. If a client connects, we'll continue
@@ -76,11 +82,15 @@ class MainActivity : ConnectionsActivity() {
         setContentView(R.layout.activity_main)
         listView = findViewById<View>(R.id.foundDevicesListView) as ListView
 
-        devices.addAll(arrayListOf("Mihai", "Claudia"))
         adapter = DevicesAdapter(this, devices)
 
         listView?.adapter = adapter
 
+
+        listView?.onItemClickListener = OnItemClickListener { parent, view, position, id ->
+            val entry: Endpoint = parent.getItemAtPosition(position) as Endpoint
+            connectToEndpoint(entry)
+        }
 
         logsTextView = findViewById<View>(R.id.logsTextView) as TextView
         logsTextView!!.movementMethod = ScrollingMovementMethod()
@@ -90,8 +100,12 @@ class MainActivity : ConnectionsActivity() {
         hideLogsBtn = findViewById(R.id.hideLogsButton)
         hideLogsBtn!!.text = getString(R.string.hideLogs)
 
-        //nearby
-        mName = generateRandomName()
+        advertiseDiscoverBtn = findViewById(R.id.btnAdvOrDisc)
+
+        mName = intent.getStringExtra("deviceName")
+        deviceNameTextView = findViewById(R.id.deviceNameTextView)
+
+        deviceNameTextView!!.text = getString(R.string.device_name, mName)
 
     }
 
@@ -127,8 +141,18 @@ class MainActivity : ConnectionsActivity() {
         return spannable
     }
 
-    fun search(view: View) {
-        setState(State.ADVERTISING)
+    fun advertiseOrDiscover(view: View) {
+        if (advertiseDiscoverBtn!!.text == getString(R.string.advertise)) {
+            advertiseDiscoverBtn!!.text = getString(R.string.discover)
+            setState(State.ADVERTISING)
+        } else {
+            advertiseDiscoverBtn!!.text = getString(R.string.advertise)
+            setState(State.DISCOVERING)
+        }
+    }
+
+    fun discover(view: View) {
+        setState(State.DISCOVERING)
     }
 
     fun hideLogs(view: View) {
@@ -164,8 +188,11 @@ class MainActivity : ConnectionsActivity() {
 
     override fun onEndpointDiscovered(endpoint: Endpoint) {
         // We found an advertiser!
+        devices.add(endpoint)
+        adapter!!.notifyDataSetChanged()
+        logD("Endpoint discoverd $endpoint.name")
         if (!isConnecting) {
-            connectToEndpoint(endpoint)
+//            connectToEndpoint(endpoint)
         }
     }
 
@@ -191,6 +218,13 @@ class MainActivity : ConnectionsActivity() {
         if (connectedEndpoints.isEmpty()) {
             setState(State.DISCOVERING)
         }
+
+        adapter!!.notifyDataSetChanged()
+    }
+
+    override fun onEndpointDiscoverLost(endpoint: Endpoint?) {
+        super.onEndpointDiscoverLost(endpoint)
+        devices.remove(endpoint)
     }
 
     override fun onConnectionFailed(endpoint: Endpoint) {
@@ -232,28 +266,28 @@ class MainActivity : ConnectionsActivity() {
     private fun onStateChanged(oldState: State, newState: State) {
         // Update Nearby Connections to the new state.
         when (newState) {
-            MainActivity.State.DISCOVERING -> {
+            State.DISCOVERING -> {
                 if (isAdvertising) {
                     stopAdvertising()
                 }
                 disconnectFromAllEndpoints()
                 startDiscovering()
             }
-            MainActivity.State.ADVERTISING -> {
+            State.ADVERTISING -> {
                 if (isDiscovering) {
                     stopDiscovering()
                 }
                 disconnectFromAllEndpoints()
                 startAdvertising()
             }
-            MainActivity.State.CONNECTED -> if (isDiscovering) {
+            State.CONNECTED -> if (isDiscovering) {
                 stopDiscovering()
             } else if (isAdvertising) {
                 // Continue to advertise, so others can still connect,
                 // but clear the discover runnable.
                 removeCallbacks(mDiscoverRunnable)
             }
-            MainActivity.State.UNKNOWN -> stopAllEndpoints()
+            State.UNKNOWN -> stopAllEndpoints()
             else -> {
             }
         }// no-op
