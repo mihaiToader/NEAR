@@ -9,13 +9,13 @@ import android.widget.EditText
 
 class DeviceNameActivity : AppCompatActivity() {
 
-    var deviceName: EditText? = null
+    private var deviceName: EditText? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_device_name)
 
-        deviceName = this.findViewById(R.id.deviceNameInput)
+        deviceName = findViewById(R.id.deviceNameInput)
     }
 
     fun chooseName(view: View) {

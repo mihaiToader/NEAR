@@ -8,37 +8,42 @@ import android.text.format.DateFormat
 import android.text.method.ScrollingMovementMethod
 import android.text.style.ForegroundColorSpan
 import android.view.View
-import android.widget.Button
-import android.widget.ListView
-import android.widget.TextView
-import android.widget.Toast
+import android.widget.*
+import android.widget.AdapterView.OnItemClickListener
 import com.google.android.gms.nearby.connection.ConnectionInfo
+import com.google.android.gms.nearby.connection.Payload
 import com.google.android.gms.nearby.connection.Strategy
 import com.mtoader.near.adapters.DevicesAdapter
+import com.mtoader.near.adapters.MessageAdapter
 import com.mtoader.near.model.Endpoint
+import com.mtoader.near.model.message.Message
 import com.mtoader.near.nearbyConnections.ConnectionsActivity
 import java.util.*
-import android.provider.AlarmClock.EXTRA_MESSAGE
-import android.content.Intent
-import android.widget.AdapterView
-import android.widget.AdapterView.OnItemClickListener
-
-
-
+import com.mtoader.near.model.message.MemberData
 
 class MainActivity : ConnectionsActivity() {
     private var devices: ArrayList<Endpoint> = ArrayList()
     private var adapter: DevicesAdapter? = null
     private var listView: ListView? = null
     private var deviceNameTextView: TextView? = null
+    private var messageText: EditText? = null
+    private var messagesView: ListView? = null
+    private var messageAdapter: MessageAdapter? = null
+
+    private var devicesView: View? = null
+    private var chatView: View? = null
+
+    private var data: MemberData? = null
+
+    private var currentData: MemberData? = null
+
+    private var hideLogsBtn: Button? = null
+    private var advertiseDiscoverBtn: Button? = null
 
     /** A running log of debug messages. Only visible when DEBUG=true.  */
     private var logsTextView: TextView? = null
     private var logsView: View? = null
 
-    private var hideLogsBtn: Button? = null
-
-    private var advertiseDiscoverBtn: Button? = null
 
     /**
      * The connection strategy we'll use for Nearby Connections. In this case, we've decided on
@@ -97,7 +102,7 @@ class MainActivity : ConnectionsActivity() {
 
         logsView = findViewById(R.id.logsView)
 
-        hideLogsBtn = findViewById(R.id.hideLogsButton)
+        hideLogsBtn = findViewById<Button>(R.id.hideLogsButton)
         hideLogsBtn!!.text = getString(R.string.hideLogs)
 
         advertiseDiscoverBtn = findViewById(R.id.btnAdvOrDisc)
@@ -107,6 +112,20 @@ class MainActivity : ConnectionsActivity() {
 
         deviceNameTextView!!.text = getString(R.string.device_name, mName)
 
+        //messages
+        messageText = findViewById<View>(R.id.editText) as EditText
+
+        messageAdapter = MessageAdapter(this)
+        messagesView = findViewById<View>(R.id.messages_view) as ListView
+        messagesView!!.adapter = messageAdapter
+
+        devicesView = findViewById(R.id.devicesView)
+        chatView = findViewById(R.id.chatView)
+
+        chatView!!.visibility = View.GONE
+
+        data = MemberData(mName, getRandomColor())
+        currentData = MemberData(mName, getRandomColor())
     }
 
     private fun appendToLogs(msg: CharSequence) {
@@ -206,6 +225,11 @@ class MainActivity : ConnectionsActivity() {
                 this, getString(R.string.toast_connected, endpoint.name), Toast.LENGTH_SHORT)
                 .show()
         setState(State.CONNECTED)
+
+        devicesView!!.visibility = View.GONE
+        chatView!!.visibility = View.VISIBLE
+
+        data = MemberData(endpoint.name, getRandomColor())
     }
 
     override fun onEndpointDisconnected(endpoint: Endpoint) {
@@ -219,12 +243,18 @@ class MainActivity : ConnectionsActivity() {
             setState(State.DISCOVERING)
         }
 
+        devices.remove(endpoint)
         adapter!!.notifyDataSetChanged()
+
+        messageAdapter!!.clear()
+        devicesView!!.visibility = View.VISIBLE
+        chatView!!.visibility = View.GONE
     }
 
     override fun onEndpointDiscoverLost(endpoint: Endpoint?) {
         super.onEndpointDiscoverLost(endpoint)
         devices.remove(endpoint)
+        adapter!!.notifyDataSetChanged()
     }
 
     override fun onConnectionFailed(endpoint: Endpoint) {
@@ -320,5 +350,43 @@ class MainActivity : ConnectionsActivity() {
         DISCOVERING,
         ADVERTISING,
         CONNECTED
+    }
+
+    fun sendMessage(view: View) {
+        val message = messageText!!.text.toString()
+        if (!message.isEmpty()) {
+            messageText!!.text.clear()
+
+            messageAdapter!!.add(Message(message, data, true))
+            val count = messagesView!!.count
+            messagesView!!.setSelection(count - 1)
+            this.send(Payload.fromBytes(message.toByteArray()))
+        }
+    }
+
+    fun closeChat(view: View) {
+        disconnect(data!!.name)
+
+        messageAdapter!!.clear()
+        devicesView!!.visibility = View.VISIBLE
+        chatView!!.visibility = View.GONE
+    }
+
+    override fun onReceive(endpoint: Endpoint, payload: Payload) {
+        if (data!!.name != endpoint.name) {
+            data = MemberData(endpoint.name, getRandomColor())
+        }
+        messageAdapter!!.add(Message(String(payload.asBytes()!!), data, false ))
+        val count = messagesView!!.count
+        messagesView!!.setSelection(count - 1)
+    }
+
+    private fun getRandomColor(): String {
+        val r = Random()
+        val sb = StringBuffer("#")
+        while (sb.length < 7) {
+            sb.append(Integer.toHexString(r.nextInt()))
+        }
+        return sb.toString().substring(0, 7)
     }
 }

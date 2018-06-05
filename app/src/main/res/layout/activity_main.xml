@@ -19,6 +19,60 @@
             android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
         <LinearLayout
+            android:id="@+id/chatView"
+            android:layout_width="match_parent"
+            android:layout_height="match_parent"
+            android:orientation="vertical">
+
+            <ListView
+                android:id="@+id/messages_view"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="2"
+                android:divider="#fff" />
+
+            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:background="#fff"
+                android:orientation="horizontal">
+
+                <ImageButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginHorizontal="10dp"
+                    android:background="@drawable/back_arrow"
+                    android:onClick="closeChat"
+                    android:padding="20dp"
+                    android:scaleType="fitCenter" />
+
+                <EditText
+                    android:id="@+id/editText"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="2"
+                    android:ems="10"
+                    android:hint="@string/write_a_message"
+                    android:inputType="text"
+                    android:paddingHorizontal="10dp"
+                    android:text="" />
+
+
+                <ImageButton
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    android:layout_marginHorizontal="10dp"
+                    android:background="@drawable/ic_send_black_24dp"
+                    android:onClick="sendMessage"
+                    android:padding="20dp"
+                    android:scaleType="fitCenter" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <LinearLayout
+            android:id="@+id/devicesView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:orientation="vertical">
@@ -81,35 +135,6 @@
             </LinearLayout>
 
         </LinearLayout>
-
-        <!--<LinearLayout-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:orientation="vertical">-->
-
-            <!--<LinearLayout-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="match_parent"-->
-                <!--android:gravity="bottom"-->
-                <!--android:orientation="horizontal">-->
-
-                <!--<EditText-->
-                    <!--android:id="@+id/editText"-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:layout_weight="1"-->
-                    <!--android:ems="10"-->
-                    <!--android:inputType="textPersonName"-->
-                    <!--android:text="Name" />-->
-
-                <!--<Button-->
-                    <!--android:id="@+id/button"-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:layout_weight="1"-->
-                    <!--android:text="Button" />-->
-            <!--</LinearLayout>-->
-        <!--</LinearLayout>-->
 
     </LinearLayout>
 </android.support.constraint.ConstraintLayout>

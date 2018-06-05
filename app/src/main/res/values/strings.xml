@@ -16,4 +16,5 @@
     <string name="advertise">ADVERTISE</string>
     <string name="discover">DISCOVER</string>
     <string name="sos">SOS</string>
+    <string name="write_a_message">Write a message</string>
 </resources>

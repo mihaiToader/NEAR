@@ -270,7 +270,7 @@ abstract class ConnectionsActivity : AppCompatActivity() {
                             }
 
                             override fun onEndpointLost(endpointId: String) {
-//                                onEndpointDiscoverLost(mDiscoveredEndpoints[endpointId])
+                                onEndpointDiscoverLost(mDiscoveredEndpoints[endpointId])
                                 logD(String.format("onEndpointLost(endpointId=%s)", endpointId))
                             }
                         },
@@ -305,6 +305,10 @@ abstract class ConnectionsActivity : AppCompatActivity() {
     protected fun disconnect(endpoint: Endpoint) {
         mConnectionsClient!!.disconnectFromEndpoint(endpoint.id)
         mEstablishedConnections.remove(endpoint.id)
+    }
+
+    protected fun disconnect(endpoint: String) {
+        disconnect(mEstablishedConnections.values.find { it.name == endpoint }!!)
     }
 
     /** Disconnects from all currently connected endpoints.  */
@@ -394,7 +398,7 @@ abstract class ConnectionsActivity : AppCompatActivity() {
      * @param endpoint The sender.
      * @param payload The data.
      */
-    protected fun onReceive(endpoint: Endpoint, payload: Payload) {}
+    protected open fun onReceive(endpoint: Endpoint, payload: Payload) {}
 
     @CallSuper
     protected open fun logV(msg: String) {
@@ -435,7 +439,7 @@ abstract class ConnectionsActivity : AppCompatActivity() {
                         Manifest.permission.CHANGE_WIFI_STATE,
                         Manifest.permission.ACCESS_COARSE_LOCATION)
 
-        private val REQUEST_CODE_REQUIRED_PERMISSIONS = 1
+        private const val REQUEST_CODE_REQUIRED_PERMISSIONS = 1
 
         /**
          * Transforms a [Status] into a English-readable message for logging.
