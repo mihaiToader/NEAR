@@ -1,0 +1,5 @@
+<resources>
+    <string name="app_name">near-library</string>
+    <string name="error_missing_permissions">Error missing permissions</string>
+
+</resources>

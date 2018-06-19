@@ -1,8 +1,10 @@
 package com.mtoader.near
 
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.support.annotation.RequiresApi
 import android.text.SpannableString
 import android.text.format.DateFormat
 import android.text.method.ScrollingMovementMethod
@@ -10,14 +12,14 @@ import android.text.style.ForegroundColorSpan
 import android.view.View
 import android.widget.*
 import android.widget.AdapterView.OnItemClickListener
+import com.example.near_library.ConnectionsActivity
+import com.example.near_library.Endpoint
 import com.google.android.gms.nearby.connection.ConnectionInfo
 import com.google.android.gms.nearby.connection.Payload
 import com.google.android.gms.nearby.connection.Strategy
 import com.mtoader.near.adapters.DevicesAdapter
 import com.mtoader.near.adapters.MessageAdapter
-import com.mtoader.near.model.Endpoint
 import com.mtoader.near.model.message.Message
-import com.mtoader.near.nearbyConnections.ConnectionsActivity
 import java.util.*
 import com.mtoader.near.model.message.MemberData
 
@@ -193,6 +195,7 @@ class MainActivity : ConnectionsActivity() {
         return name
     }
 
+    @RequiresApi(Build.VERSION_CODES.M)
     override fun onStart() {
         super.onStart()
         setState(State.DISCOVERING)

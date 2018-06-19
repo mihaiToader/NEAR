@@ -6,8 +6,8 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
+import com.example.near_library.Endpoint
 import com.mtoader.near.R
-import com.mtoader.near.model.Endpoint
 import java.util.ArrayList
 
 class DevicesAdapter(private val context: Context? = null, private val listOfDevices: ArrayList<Endpoint> = ArrayList()) : BaseAdapter() {
