@@ -22,25 +22,26 @@ import com.mtoader.near.adapters.MessageAdapter
 import com.mtoader.near.model.message.Message
 import java.util.*
 import com.mtoader.near.model.message.MemberData
+import kotlinx.android.synthetic.main.activity_main.*
 
 class MainActivity : ConnectionsActivity() {
     private var devices: ArrayList<Endpoint> = ArrayList()
     private var adapter: DevicesAdapter? = null
-    private var listView: ListView? = null
-    private var deviceNameTextView: TextView? = null
+    private lateinit var listView: ListView
+    private lateinit var deviceNameTextView: TextView
     private var messageText: EditText? = null
     private var messagesView: ListView? = null
     private var messageAdapter: MessageAdapter? = null
 
-    private var devicesView: View? = null
-    private var chatView: View? = null
+    private lateinit var devicesView: View
+    private lateinit var chatView: View
 
     private var data: MemberData? = null
-
     private var currentData: MemberData? = null
 
-    private var hideLogsBtn: Button? = null
-    private var advertiseDiscoverBtn: Button? = null
+    private lateinit var hideLogsBtn: Button
+    private lateinit var advertiseBtn: Button
+    private lateinit var discoverBtn: Button
 
     /** A running log of debug messages. Only visible when DEBUG=true.  */
     private var logsTextView: TextView? = null
@@ -51,29 +52,13 @@ class MainActivity : ConnectionsActivity() {
      * The connection strategy we'll use for Nearby Connections. In this case, we've decided on
      * P2P_STAR, which is a combination of Bluetooth Classic and WiFi Hotspots.
      */
-    private val STRATEGY = Strategy.P2P_CLUSTER
-
-    /**
-     * Advertise for 30 seconds before going back to discovering. If a client connects, we'll continue
-     * to advertise indefinitely so others can still connect.
-     */
-    private val ADVERTISING_DURATION: Long = 30000
+    private val STRATEGY = Strategy.P2P_STAR
 
     /**
      * This service id lets us find other nearby devices that are interested in the same thing. Our
      * sample does exactly one thing, so we hardcode the ID.
      */
     private val SERVICE_ID = "NEAR_SERVICE_ID"
-
-    /**
-     * A Handler that allows us to post back on to the UI thread. We use this to resume discovery
-     * after an uneventful bout of advertising.
-     */
-    private val mUiHandler = Handler(Looper.getMainLooper())
-
-    /** Starts discovery. Used in a postDelayed manor with [.mUiHandler].  */
-    private val mDiscoverRunnable = Runnable { setState(State.DISCOVERING) }
-
 
     /**
      * The state of the app. As the app changes states, the UI will update and advertising/discovery
@@ -107,7 +92,8 @@ class MainActivity : ConnectionsActivity() {
         hideLogsBtn = findViewById<Button>(R.id.hideLogsButton)
         hideLogsBtn!!.text = getString(R.string.hideLogs)
 
-        advertiseDiscoverBtn = findViewById(R.id.btnAdvOrDisc)
+        advertiseBtn = findViewById(R.id.btnAdvertising)
+        discoverBtn = findViewById(R.id.btnDiscovering)
 
         mName = intent.getStringExtra("deviceName")
         deviceNameTextView = findViewById(R.id.deviceNameTextView)
@@ -128,6 +114,9 @@ class MainActivity : ConnectionsActivity() {
 
         data = MemberData(mName, getRandomColor())
         currentData = MemberData(mName, getRandomColor())
+
+//        setState(State.SEARCHING)
+
     }
 
     private fun appendToLogs(msg: CharSequence) {
@@ -162,18 +151,20 @@ class MainActivity : ConnectionsActivity() {
         return spannable
     }
 
-    fun advertiseOrDiscover(view: View) {
-        if (advertiseDiscoverBtn!!.text == getString(R.string.advertise)) {
-            advertiseDiscoverBtn!!.text = getString(R.string.discover)
-            setState(State.ADVERTISING)
+    fun onAdvertise(view: View) {
+        if (isAdvertising) {
+            stopAdvertising()
         } else {
-            advertiseDiscoverBtn!!.text = getString(R.string.advertise)
-            setState(State.DISCOVERING)
+            startAdvertising()
         }
     }
 
-    fun discover(view: View) {
-        setState(State.DISCOVERING)
+    fun onDiscover(view: View) {
+        if (isDiscovering) {
+            stopDiscovering()
+        } else {
+            startDiscovering()
+        }
     }
 
     fun hideLogs(view: View) {
@@ -186,25 +177,14 @@ class MainActivity : ConnectionsActivity() {
         }
     }
 
-    private fun generateRandomName(): String {
-        var name = ""
-        val random = Random()
-        for (i in 0..4) {
-            name += random.nextInt(10)
-        }
-        return name
-    }
-
     @RequiresApi(Build.VERSION_CODES.M)
     override fun onStart() {
         super.onStart()
-        setState(State.DISCOVERING)
     }
 
     override fun onStop() {
         setState(State.UNKNOWN)
 
-        mUiHandler.removeCallbacksAndMessages(null)
         super.onStop()
     }
 
@@ -242,16 +222,17 @@ class MainActivity : ConnectionsActivity() {
 
         // If we lost all our endpoints, then we should reset the state of our app and go back
         // to our initial state (discovering).
-        if (connectedEndpoints.isEmpty()) {
-            setState(State.DISCOVERING)
-        }
-
+//        if (connectedEndpoints.isEmpty()) {
+//            setState(State.DISCOVERING)
+//        }
+//
         devices.remove(endpoint)
         adapter!!.notifyDataSetChanged()
 
         messageAdapter!!.clear()
         devicesView!!.visibility = View.VISIBLE
         chatView!!.visibility = View.GONE
+        setState(State.SEARCHING)
     }
 
     override fun onEndpointDiscoverLost(endpoint: Endpoint?) {
@@ -262,8 +243,48 @@ class MainActivity : ConnectionsActivity() {
 
     override fun onConnectionFailed(endpoint: Endpoint) {
         // Let's try someone else.
-        if (getState() == State.DISCOVERING && !discoveredEndpoints.isEmpty()) {
-            connectToEndpoint(pickRandomElem(discoveredEndpoints))
+        if (getState() == State.SEARCHING) {
+            startDiscovering()
+        }
+    }
+
+    override fun startAdvertising() {
+        super.startAdvertising()
+        changeAdvertiseBtnText()
+        logD("Start advertising!")
+    }
+
+    override fun stopAdvertising() {
+        super.stopAdvertising()
+        changeAdvertiseBtnText()
+        logD("Stop advertising")
+    }
+
+    override fun startDiscovering() {
+        super.startDiscovering()
+        changeDiscoverBtnText()
+        logD("Start discovering")
+    }
+
+    override fun stopDiscovering() {
+        super.stopDiscovering()
+        changeDiscoverBtnText()
+        logD("Stop discovering")
+    }
+
+    private fun changeDiscoverBtnText() {
+        if (isDiscovering) {
+            btnDiscovering.text = getString(R.string.stop_discovering)
+        } else {
+            btnDiscovering.text = getString(R.string.discover)
+        }
+    }
+
+    private fun changeAdvertiseBtnText() {
+        if (isAdvertising) {
+            btnAdvertising.text = getString(R.string.stop_advertising)
+        } else {
+            btnAdvertising.text = getString(R.string.advertise)
         }
     }
 
@@ -299,31 +320,17 @@ class MainActivity : ConnectionsActivity() {
     private fun onStateChanged(oldState: State, newState: State) {
         // Update Nearby Connections to the new state.
         when (newState) {
-            State.DISCOVERING -> {
-                if (isAdvertising) {
-                    stopAdvertising()
-                }
+            State.SEARCHING -> {
                 disconnectFromAllEndpoints()
                 startDiscovering()
-            }
-            State.ADVERTISING -> {
-                if (isDiscovering) {
-                    stopDiscovering()
-                }
-                disconnectFromAllEndpoints()
                 startAdvertising()
             }
-            State.CONNECTED -> if (isDiscovering) {
+            State.CONNECTED -> {
                 stopDiscovering()
-            } else if (isAdvertising) {
-                // Continue to advertise, so others can still connect,
-                // but clear the discover runnable.
-                removeCallbacks(mDiscoverRunnable)
+                stopAdvertising()
             }
             State.UNKNOWN -> stopAllEndpoints()
-            else -> {
-            }
-        }// no-op
+        }
     }
 
     override fun getName(): String {
@@ -338,21 +345,13 @@ class MainActivity : ConnectionsActivity() {
         return STRATEGY
     }
 
-    /** {@see Handler#removeCallbacks(Runnable)}  */
-    private fun removeCallbacks(r: Runnable) {
-        mUiHandler.removeCallbacks(r)
-    }
-
-    private inline fun <reified T> pickRandomElem(collection: Collection<T>): T {
-        return collection.toTypedArray()[Random().nextInt(collection.size)]
-    }
-
     /** States that the UI goes through.  */
     enum class State {
         UNKNOWN,
-        DISCOVERING,
-        ADVERTISING,
-        CONNECTED
+        ADVERTISE,
+        DISCOVER,
+        CONNECTED,
+        SEARCHING
     }
 
     fun sendMessage(view: View) {
@@ -383,6 +382,7 @@ class MainActivity : ConnectionsActivity() {
         val count = messagesView!!.count
         messagesView!!.setSelection(count - 1)
     }
+
 
     private fun getRandomColor(): String {
         val r = Random()

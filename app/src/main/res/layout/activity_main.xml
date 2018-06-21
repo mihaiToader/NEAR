@@ -18,58 +18,58 @@
             android:text=""
             android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
-        <LinearLayout
-            android:id="@+id/chatView"
-            android:layout_width="match_parent"
-            android:layout_height="match_parent"
-            android:orientation="vertical">
+        <!--<LinearLayout-->
+            <!--android:id="@+id/chatView"-->
+            <!--android:layout_width="match_parent"-->
+            <!--android:layout_height="match_parent"-->
+            <!--android:orientation="vertical">-->
 
-            <ListView
-                android:id="@+id/messages_view"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_weight="2"
-                android:divider="#fff" />
+            <!--<ListView-->
+                <!--android:id="@+id/messages_view"-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="0dp"-->
+                <!--android:layout_weight="2"-->
+                <!--android:divider="#fff" />-->
 
-            <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:background="#fff"
-                android:orientation="horizontal">
+            <!--<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"-->
+                <!--android:layout_width="match_parent"-->
+                <!--android:layout_height="wrap_content"-->
+                <!--android:background="#fff"-->
+                <!--android:orientation="horizontal">-->
 
-                <ImageButton
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginHorizontal="10dp"
-                    android:background="@drawable/back_arrow"
-                    android:onClick="closeChat"
-                    android:padding="20dp"
-                    android:scaleType="fitCenter" />
+                <!--<ImageButton-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_gravity="center"-->
+                    <!--android:layout_marginHorizontal="10dp"-->
+                    <!--android:background="@drawable/back_arrow"-->
+                    <!--android:onClick="closeChat"-->
+                    <!--android:padding="20dp"-->
+                    <!--android:scaleType="fitCenter" />-->
 
-                <EditText
-                    android:id="@+id/editText"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="2"
-                    android:ems="10"
-                    android:hint="@string/write_a_message"
-                    android:inputType="text"
-                    android:paddingHorizontal="10dp"
-                    android:text="" />
+                <!--<EditText-->
+                    <!--android:id="@+id/editText"-->
+                    <!--android:layout_width="0dp"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_weight="2"-->
+                    <!--android:ems="10"-->
+                    <!--android:hint="@string/write_a_message"-->
+                    <!--android:inputType="text"-->
+                    <!--android:paddingHorizontal="10dp"-->
+                    <!--android:text="" />-->
 
 
-                <ImageButton
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    android:layout_marginHorizontal="10dp"
-                    android:background="@drawable/ic_send_black_24dp"
-                    android:onClick="sendMessage"
-                    android:padding="20dp"
-                    android:scaleType="fitCenter" />
-            </LinearLayout>
-        </LinearLayout>
+                <!--<ImageButton-->
+                    <!--android:layout_width="wrap_content"-->
+                    <!--android:layout_height="wrap_content"-->
+                    <!--android:layout_gravity="center"-->
+                    <!--android:layout_marginHorizontal="10dp"-->
+                    <!--android:background="@drawable/ic_send_black_24dp"-->
+                    <!--android:onClick="sendMessage"-->
+                    <!--android:padding="20dp"-->
+                    <!--android:scaleType="fitCenter" />-->
+            <!--</LinearLayout>-->
+        <!--</LinearLayout>-->
 
         <LinearLayout
             android:id="@+id/devicesView"
@@ -106,13 +106,28 @@
                 android:orientation="horizontal">
 
                 <Button
-                    android:id="@+id/btnAdvOrDisc"
+                    android:id="@+id/btnAdvertising"
                     style="?android:attr/borderlessButtonStyle"
                     android:layout_width="0dp"
                     android:layout_height="wrap_content"
                     android:layout_weight="1"
-                    android:onClick="advertiseOrDiscover"
+                    android:onClick="onAdvertise"
                     android:text="@string/advertise" />
+
+                <Button
+                    android:id="@+id/btnDiscovering"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="0dp"
+                    android:layout_height="wrap_content"
+                    android:layout_weight="1"
+                    android:onClick="onDiscover"
+                    android:text="@string/discover" />
+            </LinearLayout>
+
+            <LinearLayout
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal">
 
                 <Button
                     android:id="@+id/button"

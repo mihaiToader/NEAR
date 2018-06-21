@@ -41,7 +41,9 @@ import java.util.Set;
 
 import static com.example.near_library.Constants.TAG;
 
-/** A class that connects to Nearby Connections and provides convenience methods and callbacks. */
+/**
+ * A class that connects to Nearby Connections and provides convenience methods and callbacks.
+ */
 public abstract class ConnectionsActivity extends AppCompatActivity {
 
     /**
@@ -50,7 +52,7 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
      * granted just by having them in our AndroidManfiest.xml
      */
     private static final String[] REQUIRED_PERMISSIONS =
-            new String[] {
+            new String[]{
                     Manifest.permission.BLUETOOTH,
                     Manifest.permission.BLUETOOTH_ADMIN,
                     Manifest.permission.ACCESS_WIFI_STATE,
@@ -60,10 +62,14 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
 
     private static final int REQUEST_CODE_REQUIRED_PERMISSIONS = 1;
 
-    /** Our handler to Nearby Connections. */
+    /**
+     * Our handler to Nearby Connections.
+     */
     private ConnectionsClient mConnectionsClient;
 
-    /** The devices we've discovered near us. */
+    /**
+     * The devices we've discovered near us.
+     */
     private final Map<String, Endpoint> mDiscoveredEndpoints = new HashMap<>();
 
     /**
@@ -84,13 +90,19 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
      */
     private boolean mIsConnecting = false;
 
-    /** True if we are discovering. */
+    /**
+     * True if we are discovering.
+     */
     private boolean mIsDiscovering = false;
 
-    /** True if we are advertising. */
+    /**
+     * True if we are advertising.
+     */
     private boolean mIsAdvertising = false;
 
-    /** Callbacks for connections to other devices. */
+    /**
+     * Callbacks for connections to other devices.
+     */
     private final ConnectionLifecycleCallback mConnectionLifecycleCallback =
             new ConnectionLifecycleCallback() {
                 @Override
@@ -132,7 +144,9 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                 }
             };
 
-    /** Callbacks for payloads (bytes of data) sent from another device to us. */
+    /**
+     * Callbacks for payloads (bytes of data) sent from another device to us.
+     */
     private final PayloadCallback mPayloadCallback =
             new PayloadCallback() {
                 @Override
@@ -149,14 +163,18 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                 }
             };
 
-    /** Called when our Activity is first created. */
+    /**
+     * Called when our Activity is first created.
+     */
     @Override
     protected void onCreate(@Nullable Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         mConnectionsClient = Nearby.getConnectionsClient(this);
     }
 
-    /** Called when our Activity has been made visible to the user. */
+    /**
+     * Called when our Activity has been made visible to the user.
+     */
     @RequiresApi(api = Build.VERSION_CODES.M)
     @Override
     protected void onStart() {
@@ -166,7 +184,9 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
         }
     }
 
-    /** Called when the user has accepted (or denied) our permission request. */
+    /**
+     * Called when the user has accepted (or denied) our permission request.
+     */
     @CallSuper
     @Override
     public void onRequestPermissionsResult(
@@ -218,22 +238,32 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                         });
     }
 
-    /** Stops advertising. */
+    /**
+     * Stops advertising.
+     */
     protected void stopAdvertising() {
         mIsAdvertising = false;
         mConnectionsClient.stopAdvertising();
     }
 
-    /** Returns {@code true} if currently advertising. */
+    /**
+     * Returns {@code true} if currently advertising.
+     */
     protected boolean isAdvertising() {
         return mIsAdvertising;
     }
 
-    /** Called when advertising successfully starts. Override this method to act on the event. */
-    protected void onAdvertisingStarted() {}
+    /**
+     * Called when advertising successfully starts. Override this method to act on the event.
+     */
+    protected void onAdvertisingStarted() {
+    }
 
-    /** Called when advertising fails to start. Override this method to act on the event. */
-    protected void onAdvertisingFailed() {}
+    /**
+     * Called when advertising fails to start. Override this method to act on the event.
+     */
+    protected void onAdvertisingFailed() {
+    }
 
     /**
      * Called when a pending connection with a remote endpoint is created. Use {@link ConnectionInfo}
@@ -241,9 +271,12 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
      * we want to continue with the connection, call {@link #acceptConnection(Endpoint)}. Otherwise,
      * call {@link #rejectConnection(Endpoint)}.
      */
-    protected void onConnectionInitiated(Endpoint endpoint, ConnectionInfo connectionInfo) {}
+    protected void onConnectionInitiated(Endpoint endpoint, ConnectionInfo connectionInfo) {
+    }
 
-    /** Accepts a connection request. */
+    /**
+     * Accepts a connection request.
+     */
     protected void acceptConnection(final Endpoint endpoint) {
         mConnectionsClient
                 .acceptConnection(endpoint.getId(), mPayloadCallback)
@@ -256,7 +289,9 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                         });
     }
 
-    /** Rejects a connection request. */
+    /**
+     * Rejects a connection request.
+     */
     protected void rejectConnection(Endpoint endpoint) {
         mConnectionsClient
                 .rejectConnection(endpoint.getId())
@@ -320,43 +355,61 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                         });
     }
 
-    /** Stops discovery. */
+    /**
+     * Stops discovery.
+     */
     protected void stopDiscovering() {
         mIsDiscovering = false;
         mConnectionsClient.stopDiscovery();
     }
 
-    /** Returns {@code true} if currently discovering. */
+    /**
+     * Returns {@code true} if currently discovering.
+     */
     protected boolean isDiscovering() {
         return mIsDiscovering;
     }
 
-    /** Called when discovery successfully starts. Override this method to act on the event. */
-    protected void onDiscoveryStarted() {}
+    /**
+     * Called when discovery successfully starts. Override this method to act on the event.
+     */
+    protected void onDiscoveryStarted() {
+    }
 
-    /** Called when discovery fails to start. Override this method to act on the event. */
-    protected void onDiscoveryFailed() {}
+    /**
+     * Called when discovery fails to start. Override this method to act on the event.
+     */
+    protected void onDiscoveryFailed() {
+    }
 
-    /** Called when discovery fails to start. Override this method to act on the event. */
-    protected void onEndpointDiscoverLost(Endpoint endpoint) {}
+    /**
+     * Called when discovery fails to start. Override this method to act on the event.
+     */
+    protected void onEndpointDiscoverLost(Endpoint endpoint) {
+    }
 
     /**
      * Called when a remote endpoint is discovered. To connect to the device, call {@link
      * #connectToEndpoint(Endpoint)}.
      */
-    protected void onEndpointDiscovered(Endpoint endpoint) {}
+    protected void onEndpointDiscovered(Endpoint endpoint) {
+    }
 
-    /** Disconnects from the given endpoint. */
+    /**
+     * Disconnects from the given endpoint.
+     */
     protected void disconnect(Endpoint endpoint) {
         mConnectionsClient.disconnectFromEndpoint(endpoint.getId());
         mEstablishedConnections.remove(endpoint.getId());
     }
 
-    protected void disconnect(String endpoint) {
-        disconnect(mEstablishedConnections.get(endpoint));
+    protected void disconnect(final String endpoint) {
+        disconnect(mDiscoveredEndpoints.get(endpoint));
     }
 
-    /** Disconnects from all currently connected endpoints. */
+    /**
+     * Disconnects from all currently connected endpoints.
+     */
     protected void disconnectFromAllEndpoints() {
         for (Endpoint endpoint : mEstablishedConnections.values()) {
             mConnectionsClient.disconnectFromEndpoint(endpoint.getId());
@@ -364,7 +417,9 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
         mEstablishedConnections.clear();
     }
 
-    /** Resets and clears all state in Nearby Connections. */
+    /**
+     * Resets and clears all state in Nearby Connections.
+     */
     protected void stopAllEndpoints() {
         mConnectionsClient.stopAllEndpoints();
         mIsAdvertising = false;
@@ -399,7 +454,9 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                         });
     }
 
-    /** Returns {@code true} if we're currently attempting to connect to another device. */
+    /**
+     * Returns {@code true} if we're currently attempting to connect to another device.
+     */
     protected final boolean isConnecting() {
         return mIsConnecting;
     }
@@ -420,22 +477,33 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
      * Called when a connection with this endpoint has failed. Override this method to act on the
      * event.
      */
-    protected void onConnectionFailed(Endpoint endpoint) {}
+    protected void onConnectionFailed(Endpoint endpoint) {
+    }
 
-    /** Called when someone has connected to us. Override this method to act on the event. */
-    protected void onEndpointConnected(Endpoint endpoint) {}
+    /**
+     * Called when someone has connected to us. Override this method to act on the event.
+     */
+    protected void onEndpointConnected(Endpoint endpoint) {
+    }
 
-    /** Called when someone has disconnected. Override this method to act on the event. */
-    protected void onEndpointDisconnected(Endpoint endpoint) {}
+    /**
+     * Called when someone has disconnected. Override this method to act on the event.
+     */
+    protected void onEndpointDisconnected(Endpoint endpoint) {
+    }
 
-    /** Returns a list of currently connected endpoints. */
+    /**
+     * Returns a list of currently connected endpoints.
+     */
     protected Set<Endpoint> getDiscoveredEndpoints() {
         Set<Endpoint> endpoints = new HashSet<>();
         endpoints.addAll(mDiscoveredEndpoints.values());
         return endpoints;
     }
 
-    /** Returns a list of currently connected endpoints. */
+    /**
+     * Returns a list of currently connected endpoints.
+     */
     protected Set<Endpoint> getConnectedEndpoints() {
         Set<Endpoint> endpoints = new HashSet<>();
         endpoints.addAll(mEstablishedConnections.values());
@@ -467,9 +535,10 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
      * Someone connected to us has sent us data. Override this method to act on the event.
      *
      * @param endpoint The sender.
-     * @param payload The data.
+     * @param payload  The data.
      */
-    protected void onReceive(Endpoint endpoint, Payload payload) {}
+    protected void onReceive(Endpoint endpoint, Payload payload) {
+    }
 
     /**
      * An optional hook to pool any permissions the app needs with the permissions ConnectionsActivity
@@ -481,7 +550,9 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
         return REQUIRED_PERMISSIONS;
     }
 
-    /** Returns the client's name. Visible to others when connecting. */
+    /**
+     * Returns the client's name. Visible to others when connecting.
+     */
     protected abstract String getName();
 
     /**

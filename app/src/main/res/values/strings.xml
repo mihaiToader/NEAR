@@ -14,7 +14,9 @@
 
     <string name="device_name">Device: %1$s</string>
     <string name="advertise">ADVERTISE</string>
-    <string name="discover">DISCOVER</string>
     <string name="sos">SOS</string>
     <string name="write_a_message">Write a message</string>
+    <string name="discover">DISCOVER</string>
+    <string name="stop_advertising">STOP ADVERTISING</string>
+    <string name="stop_discovering">STOP DISCOVERING</string>
 </resources>
