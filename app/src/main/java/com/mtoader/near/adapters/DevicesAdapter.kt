@@ -6,11 +6,13 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.TextView
-import com.example.near_library.Endpoint
+import com.example.near_library.model.Endpoint
 import com.mtoader.near.R
 import java.util.ArrayList
 
-class DevicesAdapter(private val context: Context? = null, private val listOfDevices: ArrayList<Endpoint> = ArrayList()) : BaseAdapter() {
+class DevicesAdapter(private val context: Context? = null) : BaseAdapter() {
+    private val listOfDevices: ArrayList<Endpoint> = ArrayList()
+
     private class ViewHolder(row: View?) {
         var txtName: TextView? = null
 
@@ -47,5 +49,15 @@ class DevicesAdapter(private val context: Context? = null, private val listOfDev
 
     override fun getCount(): Int {
         return listOfDevices.size
+    }
+
+    fun addDevice(endpoint: Endpoint) {
+        this.listOfDevices.add(endpoint)
+        notifyDataSetChanged()
+    }
+
+    fun removeDevice(endpoint: Endpoint) {
+        this.listOfDevices.remove(endpoint)
+        notifyDataSetChanged()
     }
 }

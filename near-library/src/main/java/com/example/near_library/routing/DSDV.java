@@ -1,6 +1,6 @@
 package com.example.near_library.routing;
 
-import com.example.near_library.Endpoint;
+import com.example.near_library.model.Endpoint;
 
 import java.util.*;
 
@@ -14,16 +14,24 @@ public class DSDV {
 
     private Endpoint source;
 
+    private boolean orientedGraph = false;
+
     private static Integer INFINTE = Integer.MAX_VALUE;
 
-    public DSDV(Endpoint source) {
+    public DSDV(Boolean orientedGraph, Endpoint source) {
         graph = new Graph();
+
+        this.orientedGraph = orientedGraph;
 
         distances = new HashMap<>();
 
         predecessors = new HashMap<>();
 
         this.source = source;
+    }
+
+    public DSDV(boolean orientedGraph) {
+        this(orientedGraph, null);
     }
 
     public void bellmanFord() {
@@ -46,22 +54,29 @@ public class DSDV {
                 Endpoint destination = edge.getDestination();
                 Integer weight = edge.getWeight();
 
-                if (!distances.get(source).equals(INFINTE) &&
-                        distances.get(source) + weight < distances.get(destination)) {
-                    distances.put(destination, distances.get(source) + weight);
-                    predecessors.put(destination, source);
+                calculateDistance(source, destination, weight);
+                if (!orientedGraph) {
+                    calculateDistance(destination, source, weight);
                 }
             }
         }
     }
 
+    private void calculateDistance(Endpoint source, Endpoint destination, Integer weight) {
+        if (!distances.get(source).equals(INFINTE) &&
+                distances.get(source) + weight < distances.get(destination)) {
+            distances.put(destination, distances.get(source) + weight);
+            predecessors.put(destination, source);
+        }
+    }
+
     private void initialiseDistancesAndPredecessors() {
-        Set<Endpoint> vertices = graph.getVertices();
+        Set<Endpoint> vertices = graph.getVertices().keySet();
 
         distances.clear();
         predecessors.clear();
 
-        for (Endpoint e: vertices) {
+        for (Endpoint e : vertices) {
             distances.put(e, INFINTE);
             predecessors.put(e, null);
         }
@@ -69,23 +84,44 @@ public class DSDV {
         predecessors.put(source, null);
     }
 
+    public List<Endpoint> getPathTo(String endpointId) {
+        return getPathTo(graph.findVertex(endpointId));
+    }
+
     public List<Endpoint> getPathTo(Endpoint endpoint) {
-        List<Endpoint> path = new ArrayList<>();
-        Endpoint current = endpoint;
-        while (current != null) {
-            path.add(current);
-            current = predecessors.get(current);
+        if (endpoint != null) {
+            List<Endpoint> path = new ArrayList<>();
+            Endpoint current = endpoint;
+            while (current != null) {
+                path.add(current);
+                current = predecessors.get(current);
+            }
+            Collections.reverse(path);
+            path.remove(0);
+            return path;
         }
-        Collections.reverse(path);
-        return path;
+        return null;
     }
 
     public void addEdge(Endpoint source, Endpoint destination, Integer weight) {
         graph.addEdge(source, destination, weight);
+        bellmanFord();
     }
 
-    public void addUnorientedEdge(Endpoint source, Endpoint destination, Integer weight) {
-        graph.addUnorientedEdge(source, destination, weight);
+    public void addEdge(Edge edge) {
+        this.addEdge(edge.getSource(), edge.getDestination());
+    }
+
+    public void addEdgeFromSource(Endpoint destination, Integer weight) {
+        this.addEdge(source, destination, weight);
+    }
+
+    public void addEdge(Endpoint source, Endpoint destination) {
+        this.addEdge(source, destination, 1);
+    }
+
+    public void addEdgeFromSource(Endpoint destination) {
+        this.addEdge(source, destination, 1);
     }
 
     public Graph getGraph() {
@@ -103,4 +139,42 @@ public class DSDV {
     public Endpoint getSource() {
         return source;
     }
+
+    public void setSource(Endpoint endpoint) {
+        this.source = endpoint;
+    }
+
+    public String encodePathTo(Endpoint destination) {
+        return encodePath(getPathTo(destination));
+    }
+
+    public String encodePath(List<Endpoint> path) {
+        StringBuilder encoding = new StringBuilder();
+        for (Endpoint endpoint : path) {
+            encoding.append(endpoint.encode()).append("@");
+        }
+        if (encoding.toString().isEmpty()) {
+            return encoding.toString();
+        }
+        return encoding.toString().substring(0, encoding.length() - 1);
+    }
+
+    public List<Endpoint> decodePath(String encodingPath) {
+        List<Endpoint> path = new ArrayList<>();
+        for (String encodingEndpoint : encodingPath.split("@")) {
+            path.add(Endpoint.decode(encodingEndpoint));
+        }
+        return path;
+    }
+
+    public void removeEdge(Endpoint source, Endpoint destination) {
+        graph.removeEdge(source, destination);
+
+        if (graph.getVertices().get(this.source) == null) {
+            graph.clear();
+            this.source = null;
+        }
+        bellmanFord();
+    }
+
 }

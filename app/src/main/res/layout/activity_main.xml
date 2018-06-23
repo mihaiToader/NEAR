@@ -1,10 +1,17 @@
 <?xml version="1.0" encoding="utf-8"?>
-<android.support.constraint.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<android.support.v4.widget.DrawerLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/drawerLayout"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     tools:context="com.mtoader.near.MainActivity">
+
+    <ProgressBar
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:id="@+id/loadingBar"
+        android:indeterminate="true" />
 
     <LinearLayout
         android:layout_width="match_parent"
@@ -12,144 +19,170 @@
         android:orientation="vertical">
 
         <TextView
-            android:id="@+id/deviceNameTextView"
+            android:id="@+id/waitingToAccept"
             android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:text=""
+            android:layout_height="100dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:text="@string/waiting_for_accept"
             android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
-        <!--<LinearLayout-->
-            <!--android:id="@+id/chatView"-->
-            <!--android:layout_width="match_parent"-->
-            <!--android:layout_height="match_parent"-->
-            <!--android:orientation="vertical">-->
+        <TextView
+            android:id="@+id/visibleDevicesText"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_weight="1"
+            android:gravity="center"
+            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
-            <!--<ListView-->
-                <!--android:id="@+id/messages_view"-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="0dp"-->
-                <!--android:layout_weight="2"-->
-                <!--android:divider="#fff" />-->
-
-            <!--<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"-->
-                <!--android:layout_width="match_parent"-->
-                <!--android:layout_height="wrap_content"-->
-                <!--android:background="#fff"-->
-                <!--android:orientation="horizontal">-->
-
-                <!--<ImageButton-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:layout_gravity="center"-->
-                    <!--android:layout_marginHorizontal="10dp"-->
-                    <!--android:background="@drawable/back_arrow"-->
-                    <!--android:onClick="closeChat"-->
-                    <!--android:padding="20dp"-->
-                    <!--android:scaleType="fitCenter" />-->
-
-                <!--<EditText-->
-                    <!--android:id="@+id/editText"-->
-                    <!--android:layout_width="0dp"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:layout_weight="2"-->
-                    <!--android:ems="10"-->
-                    <!--android:hint="@string/write_a_message"-->
-                    <!--android:inputType="text"-->
-                    <!--android:paddingHorizontal="10dp"-->
-                    <!--android:text="" />-->
-
-
-                <!--<ImageButton-->
-                    <!--android:layout_width="wrap_content"-->
-                    <!--android:layout_height="wrap_content"-->
-                    <!--android:layout_gravity="center"-->
-                    <!--android:layout_marginHorizontal="10dp"-->
-                    <!--android:background="@drawable/ic_send_black_24dp"-->
-                    <!--android:onClick="sendMessage"-->
-                    <!--android:padding="20dp"-->
-                    <!--android:scaleType="fitCenter" />-->
-            <!--</LinearLayout>-->
-        <!--</LinearLayout>-->
+        <TextView
+            android:id="@+id/deviceNameTextView"
+            android:layout_width="match_parent"
+            android:layout_height="100dp"
+            android:layout_weight="1"
+            android:textAppearance="@style/TextAppearance.AppCompat.Headline" />
 
         <LinearLayout
-            android:id="@+id/devicesView"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
+            android:layout_weight="1"
             android:orientation="vertical">
 
-            <ListView
-                android:id="@+id/foundDevicesListView"
-                android:layout_width="match_parent"
-                android:layout_height="0dip"
-                android:layout_weight="1" />
-
             <LinearLayout
-                android:id="@+id/logsView"
+                android:id="@+id/chatView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginTop="10dp"
-                android:background="@drawable/border"
-                android:orientation="vertical"
-                android:padding="15dp">
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-                <TextView
-                    android:id="@+id/logsTextView"
+                <ListView
+                    android:id="@+id/messagesListView"
                     android:layout_width="match_parent"
-                    android:layout_height="120dp"
-                    android:gravity="bottom"
-                    android:text="" />
+                    android:layout_height="0dp"
+                    android:layout_weight="2"
+                    android:divider="#fff" />
+
+                <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:background="#fff"
+                    android:id="@+id/chatInput"
+                    android:orientation="horizontal">
+
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginHorizontal="10dp"
+                        android:background="@drawable/back_arrow"
+                        android:onClick="closeChat"
+                        android:padding="20dp"
+                        android:scaleType="fitCenter" />
+
+                    <EditText
+                        android:id="@+id/messageInputText"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="2"
+                        android:ems="10"
+                        android:hint="@string/write_a_message"
+                        android:inputType="text"
+                        android:paddingHorizontal="10dp"
+                        android:text="" />
+
+
+                    <ImageButton
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_gravity="center"
+                        android:layout_marginHorizontal="10dp"
+                        android:background="@drawable/ic_send_black_24dp"
+                        android:onClick="sendMessage"
+                        android:padding="20dp"
+                        android:scaleType="fitCenter" />
+                </LinearLayout>
             </LinearLayout>
 
             <LinearLayout
+                android:id="@+id/devicesView"
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                android:layout_height="match_parent"
+                android:orientation="vertical">
 
-                <Button
-                    android:id="@+id/btnAdvertising"
-                    style="?android:attr/borderlessButtonStyle"
-                    android:layout_width="0dp"
+                <ListView
+                    android:id="@+id/foundDevicesListView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dip"
+                    android:layout_weight="1" />
+
+                <ListView
+                    android:id="@+id/connectedDevicesListView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dip"
+                    android:layout_weight="1" />
+
+                <ListView
+                    android:id="@+id/networkDevicesListView"
+                    android:layout_width="match_parent"
+                    android:layout_height="0dip"
+                    android:layout_weight="1" />
+
+                <LinearLayout
+                    android:id="@+id/logsView"
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:onClick="onAdvertise"
-                    android:text="@string/advertise" />
+                    android:layout_marginTop="10dp"
+                    android:background="@drawable/border"
+                    android:orientation="vertical"
+                    android:padding="15dp">
 
-                <Button
-                    android:id="@+id/btnDiscovering"
-                    style="?android:attr/borderlessButtonStyle"
-                    android:layout_width="0dp"
+                    <TextView
+                        android:id="@+id/logsTextView"
+                        android:layout_width="match_parent"
+                        android:layout_height="120dp"
+                        android:gravity="bottom"
+                        android:text="" />
+                </LinearLayout>
+
+                <LinearLayout
+                    android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:onClick="onDiscover"
-                    android:text="@string/discover" />
-            </LinearLayout>
+                    android:orientation="horizontal">
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="horizontal">
+                    <Button
+                        android:id="@+id/button"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:background="@android:color/holo_red_dark"
+                        android:text="@string/sos" />
 
-                <Button
-                    android:id="@+id/button"
-                    style="?android:attr/borderlessButtonStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:background="@android:color/holo_red_dark"
-                    android:text="@string/sos" />
+                    <Button
+                        android:id="@+id/hideLogsButton"
+                        style="?android:attr/borderlessButtonStyle"
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:onClick="hideLogs"
+                        android:text="@string/hideLogs" />
 
-                <Button
-                    android:id="@+id/hideLogsButton"
-                    style="?android:attr/borderlessButtonStyle"
-                    android:layout_width="0dp"
-                    android:layout_height="wrap_content"
-                    android:layout_weight="1"
-                    android:onClick="hideLogs"
-                    android:text="@string/hideLogs" />
+                </LinearLayout>
 
             </LinearLayout>
 
         </LinearLayout>
 
     </LinearLayout>
-</android.support.constraint.ConstraintLayout>
+
+    <android.support.design.widget.NavigationView
+        android:id="@+id/navigationView"
+        android:layout_width="wrap_content"
+        android:layout_height="match_parent"
+        android:layout_gravity="start"
+        android:fitsSystemWindows="true"
+        app:headerLayout="@layout/nav_header"
+        app:menu="@menu/drawer_view">
+
+    </android.support.design.widget.NavigationView>
+
+</android.support.v4.widget.DrawerLayout>

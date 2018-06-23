@@ -14,6 +14,11 @@ import android.support.v7.app.AppCompatActivity;
 import android.util.Log;
 import android.widget.Toast;
 
+import com.example.near_library.model.Command;
+import com.example.near_library.model.Endpoint;
+import com.example.near_library.model.RoutingPayload;
+import com.example.near_library.routing.DSDV;
+import com.example.near_library.routing.Edge;
 import com.google.android.gms.common.api.Status;
 import com.google.android.gms.nearby.Nearby;
 import com.google.android.gms.nearby.connection.AdvertisingOptions;
@@ -32,14 +37,18 @@ import com.google.android.gms.nearby.connection.Strategy;
 import com.google.android.gms.tasks.OnFailureListener;
 import com.google.android.gms.tasks.OnSuccessListener;
 
+import org.apache.commons.lang3.EnumUtils;
+
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 
-import static com.example.near_library.Constants.TAG;
+import static com.example.near_library.model.Constants.TAG;
+import static com.example.near_library.model.RoutingPayload.*;
 
 /**
  * A class that connects to Nearby Connections and provides convenience methods and callbacks.
@@ -84,6 +93,8 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
      */
     private final Map<String, Endpoint> mEstablishedConnections = new HashMap<>();
 
+
+    private final DSDV routing = new DSDV(false);
     /**
      * True if we are asking a discovered device to connect to us. While we ask, we cannot ask another
      * device.
@@ -152,7 +163,7 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                 @Override
                 public void onPayloadReceived(String endpointId, Payload payload) {
                     logD(String.format("onPayloadReceived(endpointId=%s, payload=%s)", endpointId, payload));
-                    onReceive(mEstablishedConnections.get(endpointId), payload);
+                    onReceivePayload(mEstablishedConnections.get(endpointId), payload);
                 }
 
                 @Override
@@ -332,8 +343,8 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
 
                             @Override
                             public void onEndpointLost(@NonNull String endpointId) {
-                                onEndpointDiscoverLost(mDiscoveredEndpoints.get(endpointId));
                                 logD(String.format("onEndpointLost(endpointId=%s)", endpointId));
+                                onEndpointDiscoverLost(mDiscoveredEndpoints.get(endpointId));
                             }
                         },
                         new DiscoveryOptions(getStrategy()))
@@ -403,10 +414,6 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
         mEstablishedConnections.remove(endpoint.getId());
     }
 
-    protected void disconnect(final String endpoint) {
-        disconnect(mDiscoveredEndpoints.get(endpoint));
-    }
-
     /**
      * Disconnects from all currently connected endpoints.
      */
@@ -465,11 +472,13 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
         logD(String.format("connectedToEndpoint(endpoint=%s)", endpoint));
         mEstablishedConnections.put(endpoint.getId(), endpoint);
         onEndpointConnected(endpoint);
+        initialConnectionTransferRoutingData(endpoint);
     }
 
     private void disconnectedFromEndpoint(Endpoint endpoint) {
         logD(String.format("disconnectedFromEndpoint(endpoint=%s)", endpoint));
         mEstablishedConnections.remove(endpoint.getId());
+        mDiscoveredEndpoints.remove(endpoint.getId());
         onEndpointDisconnected(endpoint);
     }
 
@@ -489,25 +498,24 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
     /**
      * Called when someone has disconnected. Override this method to act on the event.
      */
+    @CallSuper
     protected void onEndpointDisconnected(Endpoint endpoint) {
+        removeEdge(routing.getSource(), endpoint);
+        sendDeleteEdgeToAllNetworkEndpoints(new Edge(routing.getSource(), endpoint));
     }
 
     /**
      * Returns a list of currently connected endpoints.
      */
     protected Set<Endpoint> getDiscoveredEndpoints() {
-        Set<Endpoint> endpoints = new HashSet<>();
-        endpoints.addAll(mDiscoveredEndpoints.values());
-        return endpoints;
+        return new HashSet<>(mDiscoveredEndpoints.values());
     }
 
     /**
      * Returns a list of currently connected endpoints.
      */
     protected Set<Endpoint> getConnectedEndpoints() {
-        Set<Endpoint> endpoints = new HashSet<>();
-        endpoints.addAll(mEstablishedConnections.values());
-        return endpoints;
+        return new HashSet<>(mEstablishedConnections.values());
     }
 
     /**
@@ -517,6 +525,17 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
      */
     protected void send(Payload payload) {
         send(payload, mEstablishedConnections.keySet());
+    }
+
+    protected void send(Payload payload, String endpointId) {
+        mConnectionsClient
+                .sendPayload(endpointId, payload)
+                .addOnFailureListener(new OnFailureListener() {
+                    @Override
+                    public void onFailure(@NonNull Exception e) {
+                        logW("sendPayload() failed.", e);
+                    }
+                });
     }
 
     private void send(Payload payload, Set<String> endpoints) {
@@ -531,13 +550,43 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                         });
     }
 
+    protected void sendPayload(String type, String data, String endpointId) {
+        if (mEstablishedConnections.get(endpointId) == null) {
+            List<Endpoint> path = routing.getPathTo(endpointId);
+            Endpoint next = path.get(0);
+            path.remove(0);
+            String command = type + "#" + data + "#" + routing.encodePath(path);
+            logD("Send payload to endpoint " + next);
+            send(Payload.fromBytes(command.getBytes()), next.getId());
+        } else {
+            String command = type + "#" + data + "#";
+            logD("Send payload to endpoint " + endpointId);
+            send(Payload.fromBytes(command.getBytes()), endpointId);
+        }
+    }
+
+    protected void sendPayload(Command command, String endpointId) {
+        sendPayload(command.getType(), command.getData(), command.getPath());
+    }
+
     /**
      * Someone connected to us has sent us data. Override this method to act on the event.
      *
      * @param endpoint The sender.
      * @param payload  The data.
      */
-    protected void onReceive(Endpoint endpoint, Payload payload) {
+
+    protected void onReceivePayload(Endpoint endpoint, Payload payload) {
+        onReceive(endpoint, decisionMaking(payload, endpoint));
+    }
+
+    protected void onReceive(Endpoint endpoint, Command command) {
+    }
+
+    protected void onNetworkEndpointAdded(Endpoint endpoint) {
+    }
+
+    protected void onNetworkEndpointRemoved(Endpoint endpoint) {
     }
 
     /**
@@ -621,5 +670,133 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
     @CallSuper
     protected void logE(String msg, Throwable e) {
         Log.e(TAG, msg, e);
+    }
+
+    protected void onChainBroken(Command command, Endpoint next) {
+
+    }
+
+    private Command decisionMaking(Payload payload, Endpoint endpoint) {
+        Command command = decodeMessage(payload);
+        if (command != null) {
+            if (!checkIfNeededToSentToOtherEndpoint(command)) {
+
+                if (EnumUtils.isValidEnum(RoutingPayload.class, command.getType())) {
+                    switch (valueOf(command.getType())) {
+                        case INITIAL_CONNECTION: {
+                            setInitialConnection(command.getData(), endpoint);
+                            break;
+                        }
+                        case RECEIVE_GRAPH: {
+                            receiveGraph(command.getData());
+                            break;
+                        }
+                        case ADD_EDGE: {
+                            addEdge(command.getData());
+                            break;
+                        }
+                        case REMOVE_EDGE: {
+                            removeEdge(command.getData());
+                            break;
+                        }
+                    }
+                    return null;
+                }
+                return command;
+            }
+        }
+        return null;
+    }
+
+    private Command decodeMessage(Payload payload) {
+        if (payload.getType() == Payload.Type.BYTES && payload.asBytes() != null) {
+            String payloadSplit[] = new String(payload.asBytes()).split("#", -1);
+            return new Command(payloadSplit[0], payloadSplit[1], payloadSplit[2]);
+        } else {
+            return null;
+        }
+    }
+
+    private void setInitialConnection(String source, Endpoint fromEndpoint) {
+        String[] sourceSplit = source.split(";");
+        Endpoint endpoint = new Endpoint(sourceSplit[0], sourceSplit[1]);
+        if (routing.getSource() == null) {
+            routing.setSource(endpoint);
+            routing.addEdgeFromSource(fromEndpoint);
+            logD("Initial connection, setting source as " + endpoint);
+        } else {
+            sendPayload(RECEIVE_GRAPH.toString(), routing.getGraph().encodeEdges(), fromEndpoint.getId());
+            sendAddEdgeToAllNetworkEndpoints(new Edge(endpoint, fromEndpoint));
+        }
+    }
+
+    private void receiveGraph(String encodedEdges) {
+        List<Edge> edges = routing.getGraph().decodeEdges(encodedEdges);
+        for (Edge e : edges) {
+            routing.addEdge(e);
+        }
+    }
+
+    private void sendAddEdgeToAllNetworkEndpoints(Edge edge) {
+        for (Endpoint e : routing.getGraph().getVertices().keySet()) {
+            if (!e.getId().equals(routing.getSource().getId())) {
+                sendPayload(ADD_EDGE.toString(), edge.encode(), e.getId());
+            }
+        }
+    }
+
+    private void sendDeleteEdgeToAllNetworkEndpoints(Edge edge) {
+        for (Endpoint e : routing.getGraph().getVertices().keySet()) {
+            if (!e.getId().equals(routing.getSource().getId())) {
+                sendPayload(REMOVE_EDGE.toString(), edge.encode(), e.getId());
+            }
+        }
+    }
+
+    private void initialConnectionTransferRoutingData(Endpoint endpoint) {
+        sendPayload(RoutingPayload.INITIAL_CONNECTION.toString(),
+                endpoint.getId() + ";" + endpoint.getName(), endpoint.getId());
+    }
+
+    private boolean checkIfNeededToSentToOtherEndpoint(Command command) {
+        String path = command.getPath();
+        if (!path.equals("")) {
+            List<Endpoint> pathEndpoints = routing.decodePath(path);
+            Endpoint next = pathEndpoints.get(0);
+            pathEndpoints.remove(0);
+            if (mEstablishedConnections.get(next.getId()) == null) {
+                onChainBroken(command, next);
+            } else {
+                command.setPath(routing.encodePath(pathEndpoints));
+                sendPayload(command, next.getId());
+            }
+            return true;
+        }
+        return false;
+    }
+
+    private void addEdge(String encodingEdge) {
+        Edge edge = Edge.decodeEdge(encodingEdge);
+        this.addEdge(edge.getSource(), edge.getDestination());
+    }
+
+    private void removeEdge(String encodingEdge) {
+        Edge edge = Edge.decodeEdge(encodingEdge);
+        this.removeEdge(edge.getSource(), edge.getDestination());
+    }
+
+    private void addEdgeFromSource(Endpoint destination) {
+        routing.addEdgeFromSource(destination);
+        onNetworkEndpointAdded(destination);
+    }
+
+    private void addEdge(Endpoint source, Endpoint destination) {
+        routing.addEdge(source, destination);
+        onNetworkEndpointAdded(destination);
+    }
+
+    private void removeEdge(Endpoint source, Endpoint destination) {
+        routing.removeEdge(source, destination);
+        onNetworkEndpointRemoved(destination);
     }
 }

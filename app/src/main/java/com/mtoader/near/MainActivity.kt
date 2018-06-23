@@ -1,53 +1,57 @@
 package com.mtoader.near
 
+import android.app.AlertDialog
 import android.os.Build
 import android.os.Bundle
-import android.os.Handler
-import android.os.Looper
 import android.support.annotation.RequiresApi
 import android.text.SpannableString
 import android.text.format.DateFormat
 import android.text.method.ScrollingMovementMethod
 import android.text.style.ForegroundColorSpan
+import android.view.MenuItem
 import android.view.View
-import android.widget.*
 import android.widget.AdapterView.OnItemClickListener
+import android.widget.Toast
 import com.example.near_library.ConnectionsActivity
-import com.example.near_library.Endpoint
+import com.example.near_library.model.Command
+import com.example.near_library.model.Endpoint
 import com.google.android.gms.nearby.connection.ConnectionInfo
-import com.google.android.gms.nearby.connection.Payload
 import com.google.android.gms.nearby.connection.Strategy
 import com.mtoader.near.adapters.DevicesAdapter
 import com.mtoader.near.adapters.MessageAdapter
-import com.mtoader.near.model.message.Message
-import java.util.*
+import com.mtoader.near.model.NearPayloadType
+import com.mtoader.near.model.dto.Token
+import com.mtoader.near.model.dto.NearLogsUser
 import com.mtoader.near.model.message.MemberData
+import com.mtoader.near.model.message.Message
+import com.mtoader.near.service.NearLogsApi
+import com.mtoader.near.service.NearLogsApiUtils
 import kotlinx.android.synthetic.main.activity_main.*
+import retrofit2.Call
+import retrofit2.Callback
+import retrofit2.Response
+import java.util.*
+
 
 class MainActivity : ConnectionsActivity() {
-    private var devices: ArrayList<Endpoint> = ArrayList()
-    private var adapter: DevicesAdapter? = null
-    private lateinit var listView: ListView
-    private lateinit var deviceNameTextView: TextView
-    private var messageText: EditText? = null
-    private var messagesView: ListView? = null
-    private var messageAdapter: MessageAdapter? = null
+    private lateinit var mDiscoveredDevicesAdapter: DevicesAdapter
+    private lateinit var mConnectedDevicesAdapter: DevicesAdapter
+    private lateinit var mNetworkDevicesAdapter: DevicesAdapter
+    private lateinit var mMessageAdapter: MessageAdapter
 
-    private lateinit var devicesView: View
-    private lateinit var chatView: View
-
-    private var data: MemberData? = null
+    private var chattingUser: MemberData? = null
     private var currentData: MemberData? = null
+    private var mIsChatActive: Boolean = false
+    private var mIsChatPending: Boolean = false
 
-    private lateinit var hideLogsBtn: Button
-    private lateinit var advertiseBtn: Button
-    private lateinit var discoverBtn: Button
+    private lateinit var mAdvertiseMenuItem: MenuItem
+    private lateinit var mDiscoverMenuItem: MenuItem
+    private lateinit var mAPIService: NearLogsApi
 
-    /** A running log of debug messages. Only visible when DEBUG=true.  */
-    private var logsTextView: TextView? = null
-    private var logsView: View? = null
+    private var nearLogsAddress: String = "http://192.168.0.103:8080"
+    private lateinit var session: String
 
-
+    private lateinit var token: Token
     /**
      * The connection strategy we'll use for Nearby Connections. In this case, we've decided on
      * P2P_STAR, which is a combination of Bluetooth Classic and WiFi Hotspots.
@@ -72,57 +76,155 @@ class MainActivity : ConnectionsActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
-        listView = findViewById<View>(R.id.foundDevicesListView) as ListView
 
-        adapter = DevicesAdapter(this, devices)
+        initialiseDiscoveredDevicesList()
 
-        listView?.adapter = adapter
+        initialiseConnectedDevicesList()
+
+        initialiseNetworkDevicesList()
+
+        initialiseLogsList()
+
+        initialiseDeviceName()
+
+        chatView.visibility = View.GONE
 
 
-        listView?.onItemClickListener = OnItemClickListener { parent, view, position, id ->
-            val entry: Endpoint = parent.getItemAtPosition(position) as Endpoint
-            connectToEndpoint(entry)
-        }
+        initialiseMessages()
 
-        logsTextView = findViewById<View>(R.id.logsTextView) as TextView
-        logsTextView!!.movementMethod = ScrollingMovementMethod()
+        currentData = MemberData(mName, getRandomColor(), null)
 
-        logsView = findViewById(R.id.logsView)
+        mAPIService = NearLogsApiUtils.apiService
 
-        hideLogsBtn = findViewById<Button>(R.id.hideLogsButton)
-        hideLogsBtn!!.text = getString(R.string.hideLogs)
-
-        advertiseBtn = findViewById(R.id.btnAdvertising)
-        discoverBtn = findViewById(R.id.btnDiscovering)
-
-        mName = intent.getStringExtra("deviceName")
-        deviceNameTextView = findViewById(R.id.deviceNameTextView)
-
-        deviceNameTextView!!.text = getString(R.string.device_name, mName)
-
-        //messages
-        messageText = findViewById<View>(R.id.editText) as EditText
-
-        messageAdapter = MessageAdapter(this)
-        messagesView = findViewById<View>(R.id.messages_view) as ListView
-        messagesView!!.adapter = messageAdapter
-
-        devicesView = findViewById(R.id.devicesView)
-        chatView = findViewById(R.id.chatView)
-
-        chatView!!.visibility = View.GONE
-
-        data = MemberData(mName, getRandomColor())
-        currentData = MemberData(mName, getRandomColor())
-
+        initialiseDrawer()
+        makeLoginToNearLogs()
 //        setState(State.SEARCHING)
 
     }
 
+    override fun onBackPressed() {
+        val builder: AlertDialog.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+        } else {
+            AlertDialog.Builder(this)
+        }
+        builder.setTitle("Exit?")
+                .setMessage("Are you sure you want to exit? :(")
+                .setPositiveButton(android.R.string.yes, { _, _ ->
+                    super.onBackPressed()
+                })
+                .setNegativeButton(android.R.string.no, { _, _ ->
+
+                })
+                .setIcon(android.R.drawable.ic_dialog_alert)
+                .show()
+    }
+
+    private fun initialiseDiscoveredDevicesList() {
+        mDiscoveredDevicesAdapter = DevicesAdapter(this)
+        foundDevicesListView.visibility = View.GONE
+        foundDevicesListView.adapter = mDiscoveredDevicesAdapter
+        foundDevicesListView.onItemClickListener = OnItemClickListener { parent, _, position, _ ->
+            val entry: Endpoint = parent.getItemAtPosition(position) as Endpoint
+            if (this.connectedEndpoints.contains(entry)) {
+                Toast.makeText(
+                        this, "Already connected!", Toast.LENGTH_SHORT)
+                        .show()
+            } else {
+                connectToEndpoint(entry)
+            }
+        }
+    }
+
+    private fun initialiseConnectedDevicesList() {
+        mConnectedDevicesAdapter = DevicesAdapter(this)
+        visibleDevicesText.text = getString(R.string.connected_devices)
+        connectedDevicesListView.visibility = View.VISIBLE
+        connectedDevicesListView.adapter = mConnectedDevicesAdapter
+        connectedDevicesListView.onItemClickListener = OnItemClickListener { parent, _, position, _ ->
+            val entry: Endpoint = parent.getItemAtPosition(position) as Endpoint
+            onChatStarted(entry)
+        }
+    }
+
+    private fun initialiseNetworkDevicesList() {
+        mNetworkDevicesAdapter = DevicesAdapter(this)
+        networkDevicesListView.adapter = mNetworkDevicesAdapter
+        networkDevicesListView.visibility = View.GONE
+        networkDevicesListView.onItemClickListener = OnItemClickListener { parent, _, position, _ ->
+            val entry: Endpoint = parent.getItemAtPosition(position) as Endpoint
+            Toast.makeText(this, "mue", Toast.LENGTH_LONG).show()
+            onChatStarted(entry)
+        }
+    }
+
+    private fun initialiseLogsList() {
+        logsTextView!!.movementMethod = ScrollingMovementMethod()
+
+        hideLogsButton.text = getString(R.string.hideLogs)
+    }
+
+    private fun initialiseDeviceName() {
+        mName = intent.getStringExtra("deviceName")
+        deviceNameTextView.text = getString(R.string.device_name, mName)
+    }
+
+    private fun initialiseMessages() {
+        waitingToAccept.visibility = View.GONE
+        loadingBar.visibility = View.GONE
+
+        mMessageAdapter = MessageAdapter(this)
+        messagesListView.adapter = mMessageAdapter
+    }
+
+    private fun initialiseDrawer() {
+        mAdvertiseMenuItem = navigationView.menu.findItem(R.id.advertise_menu)
+        mDiscoverMenuItem = navigationView.menu.findItem(R.id.discover_menu)
+
+        navigationView.setNavigationItemSelectedListener { menuItem ->
+            // set item as selected to persist highlight
+            // close drawer when item is tapped
+            drawerLayout.closeDrawers()
+            // Add code here to update the UI based on the item selected
+            // For example, swap UI fragments here
+
+            when {
+                menuItem.itemId == R.id.advertise_menu -> {
+                    startOrStopAdvertising()
+                }
+                menuItem.itemId == R.id.discover_menu -> {
+                    startOrStopDiscovering()
+                }
+                menuItem.itemId == R.id.show_connected -> {
+                    foundDevicesListView.visibility = View.GONE
+                    connectedDevicesListView.visibility = View.VISIBLE
+                    networkDevicesListView.visibility = View.GONE
+                    visibleDevicesText.text = getString(R.string.connected_devices)
+                    menuItem.isChecked = true
+                }
+                menuItem.itemId == R.id.show_discovered -> {
+                    foundDevicesListView.visibility = View.VISIBLE
+                    connectedDevicesListView.visibility = View.GONE
+                    networkDevicesListView.visibility = View.GONE
+                    visibleDevicesText.text = getString(R.string.discovered_devices)
+                    menuItem.isChecked = true
+                }
+                menuItem.itemId == R.id.show_network -> {
+                    foundDevicesListView.visibility = View.GONE
+                    networkDevicesListView.visibility = View.VISIBLE
+                    connectedDevicesListView.visibility = View.GONE
+                    visibleDevicesText.text = getString(R.string.network_devices)
+                    menuItem.isChecked = true
+                }
+            }
+            true
+        }
+    }
+
     private fun appendToLogs(msg: CharSequence) {
-        logsTextView!!.append("\n")
-        logsTextView!!.append(DateFormat.format("hh:mm", System.currentTimeMillis()).toString() + ": ")
-        logsTextView!!.append(msg)
+        logsTextView.append("\n")
+        logsTextView.append(DateFormat.format("hh:mm", System.currentTimeMillis()).toString() + ": ")
+        logsTextView.append(msg)
     }
 
     override fun logV(msg: String) {
@@ -151,7 +253,17 @@ class MainActivity : ConnectionsActivity() {
         return spannable
     }
 
-    fun onAdvertise(view: View) {
+    fun hideLogs(view: View) {
+        if (logsView!!.visibility == View.GONE) {
+            logsView!!.visibility = View.VISIBLE
+            hideLogsButton!!.text = getString(R.string.hideLogs)
+        } else {
+            logsView!!.visibility = View.GONE
+            hideLogsButton!!.text = getString(R.string.showLogs)
+        }
+    }
+
+    private fun startOrStopAdvertising() {
         if (isAdvertising) {
             stopAdvertising()
         } else {
@@ -159,21 +271,11 @@ class MainActivity : ConnectionsActivity() {
         }
     }
 
-    fun onDiscover(view: View) {
+    private fun startOrStopDiscovering() {
         if (isDiscovering) {
             stopDiscovering()
         } else {
             startDiscovering()
-        }
-    }
-
-    fun hideLogs(view: View) {
-        if (logsView!!.visibility == View.GONE) {
-            logsView!!.visibility = View.VISIBLE
-            hideLogsBtn!!.text = getString(R.string.hideLogs)
-        } else {
-            logsView!!.visibility = View.GONE
-            hideLogsBtn!!.text = getString(R.string.showLogs)
         }
     }
 
@@ -190,12 +292,9 @@ class MainActivity : ConnectionsActivity() {
 
     override fun onEndpointDiscovered(endpoint: Endpoint) {
         // We found an advertiser!
-        devices.add(endpoint)
-        adapter!!.notifyDataSetChanged()
+        mDiscoveredDevicesAdapter.addDevice(endpoint)
         logD("Endpoint discoverd $endpoint.name")
-        if (!isConnecting) {
-//            connectToEndpoint(endpoint)
-        }
+        connectToEndpoint(endpoint)
     }
 
     override fun onConnectionInitiated(endpoint: Endpoint, connectionInfo: ConnectionInfo) {
@@ -203,42 +302,55 @@ class MainActivity : ConnectionsActivity() {
         acceptConnection(endpoint)
     }
 
-    override fun onEndpointConnected(endpoint: Endpoint) {
+    private fun onChatStarted(endpoint: Endpoint) {
+        Toast.makeText(
+                this, getString(R.string.chat_with, endpoint.name), Toast.LENGTH_SHORT)
+                .show()
+
+        devicesView.visibility = View.GONE
+        chatView.visibility = View.VISIBLE
+        chatInput.visibility = View.GONE
+
+        loadingBar.visibility = View.VISIBLE
+        waitingToAccept.visibility = View.VISIBLE
+        visibleDevicesText.visibility = View.GONE
+
+        chattingUser = MemberData(endpoint.name, getRandomColor(), endpoint.id)
+
+        sendPayload(NearPayloadType.REQUEST_CHAT.toString(), "", endpoint.id)
+    }
+
+    override fun onEndpointConnected(endpoint: Endpoint?) {
+        mConnectedDevicesAdapter.addDevice(endpoint!!)
         Toast.makeText(
                 this, getString(R.string.toast_connected, endpoint.name), Toast.LENGTH_SHORT)
                 .show()
-        setState(State.CONNECTED)
-
-        devicesView!!.visibility = View.GONE
-        chatView!!.visibility = View.VISIBLE
-
-        data = MemberData(endpoint.name, getRandomColor())
     }
 
     override fun onEndpointDisconnected(endpoint: Endpoint) {
+        super.onEndpointDisconnected(endpoint)
         Toast.makeText(
                 this, getString(R.string.toast_disconnected, endpoint.name), Toast.LENGTH_SHORT)
                 .show()
 
-        // If we lost all our endpoints, then we should reset the state of our app and go back
-        // to our initial state (discovering).
-//        if (connectedEndpoints.isEmpty()) {
-//            setState(State.DISCOVERING)
-//        }
-//
-        devices.remove(endpoint)
-        adapter!!.notifyDataSetChanged()
+        mConnectedDevicesAdapter.removeDevice(endpoint)
+        mDiscoveredDevicesAdapter.removeDevice(endpoint)
 
-        messageAdapter!!.clear()
-        devicesView!!.visibility = View.VISIBLE
-        chatView!!.visibility = View.GONE
-        setState(State.SEARCHING)
+        if (mIsChatActive && endpoint.id == chattingUser!!.id!!) {
+            deniChat()
+        }
     }
 
     override fun onEndpointDiscoverLost(endpoint: Endpoint?) {
-        super.onEndpointDiscoverLost(endpoint)
-        devices.remove(endpoint)
-        adapter!!.notifyDataSetChanged()
+        mDiscoveredDevicesAdapter.removeDevice(endpoint!!)
+
+    }
+
+    override fun onDiscoveryStarted() {
+        Toast.makeText(
+                this, "Discovery started!", Toast.LENGTH_SHORT)
+                .show()
+        logW("Discovery started")
     }
 
     override fun onConnectionFailed(endpoint: Endpoint) {
@@ -246,6 +358,33 @@ class MainActivity : ConnectionsActivity() {
         if (getState() == State.SEARCHING) {
             startDiscovering()
         }
+    }
+
+    override fun onDiscoveryFailed() {
+        changeDiscoverBtnText()
+        Toast.makeText(
+                this, "Discovery failed!", Toast.LENGTH_SHORT)
+                .show()
+        logW("Discovery failed")
+    }
+
+    override fun onAdvertisingFailed() {
+        changeAdvertiseBtnText()
+        Toast.makeText(
+                this, "Advertising failed!", Toast.LENGTH_SHORT)
+                .show()
+        logW("Advertising failed")
+    }
+
+    override fun onAdvertisingStarted() {
+        Toast.makeText(
+                this, "Advertising started!", Toast.LENGTH_SHORT)
+                .show()
+    }
+
+    override fun onPause() {
+        super.onPause()
+//        stopAllEndpoints()
     }
 
     override fun startAdvertising() {
@@ -274,17 +413,17 @@ class MainActivity : ConnectionsActivity() {
 
     private fun changeDiscoverBtnText() {
         if (isDiscovering) {
-            btnDiscovering.text = getString(R.string.stop_discovering)
+            mDiscoverMenuItem.title = getString(R.string.stop_discovering_lower)
         } else {
-            btnDiscovering.text = getString(R.string.discover)
+            mDiscoverMenuItem.title = getString(R.string.discover_lower)
         }
     }
 
     private fun changeAdvertiseBtnText() {
         if (isAdvertising) {
-            btnAdvertising.text = getString(R.string.stop_advertising)
+            mAdvertiseMenuItem.title = getString(R.string.stop_advertising_lower)
         } else {
-            btnAdvertising.text = getString(R.string.advertise)
+            mAdvertiseMenuItem.title = getString(R.string.advertise_lower)
         }
     }
 
@@ -330,6 +469,8 @@ class MainActivity : ConnectionsActivity() {
                 stopAdvertising()
             }
             State.UNKNOWN -> stopAllEndpoints()
+            else -> {
+            }
         }
     }
 
@@ -355,32 +496,27 @@ class MainActivity : ConnectionsActivity() {
     }
 
     fun sendMessage(view: View) {
-        val message = messageText!!.text.toString()
+        val message = messageInputText!!.text.toString()
         if (!message.isEmpty()) {
-            messageText!!.text.clear()
+            messageInputText!!.text.clear()
 
-            messageAdapter!!.add(Message(message, data, true))
-            val count = messagesView!!.count
-            messagesView!!.setSelection(count - 1)
-            this.send(Payload.fromBytes(message.toByteArray()))
+            mMessageAdapter.add(Message(message, currentData, true))
+            val count = messagesListView.count
+            messagesListView.setSelection(count - 1)
+            sendPayload(NearPayloadType.CHAT_MESSAGE.toString(), message, chattingUser!!.id!!)
         }
     }
 
     fun closeChat(view: View) {
-        disconnect(data!!.name)
+        deniChat()
 
-        messageAdapter!!.clear()
-        devicesView!!.visibility = View.VISIBLE
-        chatView!!.visibility = View.GONE
+        sendPayload(NearPayloadType.DISCONNECT_CHAT.toString(), "", chattingUser!!.id!!)
     }
 
-    override fun onReceive(endpoint: Endpoint, payload: Payload) {
-        if (data!!.name != endpoint.name) {
-            data = MemberData(endpoint.name, getRandomColor())
+    override fun onReceive(endpoint: Endpoint, command: Command?) {
+        if (command != null) {
+            decisionMaking(NearPayloadType.valueOf(command.type), command.data, endpoint)
         }
-        messageAdapter!!.add(Message(String(payload.asBytes()!!), data, false ))
-        val count = messagesView!!.count
-        messagesView!!.setSelection(count - 1)
     }
 
 
@@ -392,4 +528,123 @@ class MainActivity : ConnectionsActivity() {
         }
         return sb.toString().substring(0, 7)
     }
+
+    private fun createAlertDialog(fromEndpoint: Endpoint) {
+        val builder: AlertDialog.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+        } else {
+            AlertDialog.Builder(this)
+        }
+        builder.setTitle("Connection requested")
+                .setMessage("Accept chatting request from ${fromEndpoint.name}?")
+                .setPositiveButton(android.R.string.yes, { _, _ ->
+                    sendPayload(NearPayloadType.ACCEPT_CHAT.toString(), "", fromEndpoint.id)
+                    acceptChat(fromEndpoint)
+                })
+                .setNegativeButton(android.R.string.no, { _, _ ->
+                    sendPayload(NearPayloadType.DENI_CHAT.toString(), "", fromEndpoint.id)
+                })
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show()
+    }
+
+//    private fun decodePath(path: String): List<Endpoint> {
+//        return if (path == "") listOf() else {
+//            val paths = path.split(",")
+//            val resPath: ArrayList<Endpoint> = ArrayList()
+//            for (endpointStr in paths) {
+//                val endpointSplit = endpointStr.split(";")
+//                resPath.add(Endpoint(endpointSplit[0], endpointSplit[1]))
+//            }
+//            resPath
+//        }
+//    }
+
+    private fun decisionMaking(type: NearPayloadType, data: String, fromEndpoint: Endpoint) {
+        when (type) {
+            NearPayloadType.REQUEST_CHAT -> {
+                createAlertDialog(fromEndpoint)
+            }
+
+            NearPayloadType.ACCEPT_CHAT -> {
+                acceptChat(fromEndpoint)
+            }
+
+            NearPayloadType.DENI_CHAT -> {
+                deniChat()
+            }
+
+            NearPayloadType.DISCONNECT_CHAT -> {
+                deniChat()
+            }
+
+            NearPayloadType.CHAT_MESSAGE -> {
+                addChatMessage(data)
+            }
+
+            NearPayloadType.UPDATE_GRAPH -> {
+            }
+        }
+    }
+
+    private fun acceptChat(fromEndpoint: Endpoint) {
+        mIsChatActive = true
+
+        devicesView.visibility = View.GONE
+        chatView.visibility = View.VISIBLE
+        chatInput.visibility = View.VISIBLE
+
+        loadingBar.visibility = View.GONE
+        waitingToAccept.visibility = View.GONE
+
+        visibleDevicesText.visibility = View.GONE
+        chattingUser = MemberData(fromEndpoint.name, getRandomColor(), fromEndpoint.id)
+    }
+
+    private fun deniChat() {
+        mIsChatActive = false
+
+        mMessageAdapter.clear()
+        devicesView.visibility = View.VISIBLE
+        chatView.visibility = View.GONE
+
+        visibleDevicesText.visibility = View.VISIBLE
+
+        loadingBar.visibility = View.GONE
+        waitingToAccept.visibility = View.GONE
+        Toast.makeText(
+                this, "Chat denied!", Toast.LENGTH_SHORT)
+                .show()
+    }
+
+    private fun addChatMessage(message: String) {
+        mMessageAdapter.add(Message(message, chattingUser, false))
+        val count = messagesListView.count
+        messagesListView.setSelection(count - 1)
+    }
+
+
+    private fun makeLoginToNearLogs() {
+        mAPIService.makeLogin(NearLogsUser("admin", "admin")).enqueue(object : Callback<Token> {
+            override fun onResponse(call: Call<Token>, response: Response<Token>) {
+                if (response.isSuccessful) {
+                    logD("Logged at near logs!")
+                }
+            }
+
+            override fun onFailure(call: Call<Token>, t: Throwable) {
+                logD("Login failed!")
+
+            }
+        })
+    }
+
+    override fun onNetworkEndpointAdded(endpoint: Endpoint) {
+        mNetworkDevicesAdapter.addDevice(endpoint)
+    }
+
+    override fun onNetworkEndpointRemoved(endpoint: Endpoint) {
+        mNetworkDevicesAdapter.removeDevice(endpoint)
+    }
+
 }

@@ -1,5 +1,5 @@
 <resources>
-    <string name="app_name">near</string>
+    <string name="app_name">Near</string>
     <string name="searchBtn">Search</string>
     <string name="name">Name</string>
     <string name="hideLogs">Hide logs</string>
@@ -8,6 +8,7 @@
 
     <string name="toast_connected">Connected to %s</string>
     <string name="toast_disconnected">Disconnected from %s</string>
+    <string name="chat_with">Chat with %s</string>
     <string name="chose_a_name">Chose a name</string>
     <string name="ok">OK</string>
 
@@ -18,5 +19,18 @@
     <string name="write_a_message">Write a message</string>
     <string name="discover">DISCOVER</string>
     <string name="stop_advertising">STOP ADVERTISING</string>
+    <string name="stop_advertising_lower">Stop advertising</string>
     <string name="stop_discovering">STOP DISCOVERING</string>
+    <string name="stop_discovering_lower">Stop discovering</string>
+    <string name="advertise_lower">Advertise</string>
+    <string name="discover_lower">Discover</string>
+    <string name="connected">Connected</string>
+    <string name="discovered">Discovered</string>
+    <string name="near_menu">Near menu</string>
+    <string name="connected_devices">Connected devices</string>
+    <string name="discovered_devices">Discovered devices</string>
+    <string name="waiting_for_accept">Waiting for accept</string>
+    <string name="search">Search</string>
+    <string name="network">Network</string>
+    <string name="network_devices">Network devices</string>
 </resources>

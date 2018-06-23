@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<menu xmlns:android="http://schemas.android.com/apk/res/android">
+    <group
+        android:id="@+id/top_menu"
+        android:checkableBehavior="none">
+        <item
+            android:id="@+id/advertise_menu"
+            android:title="@string/advertise_lower" />
+        <item
+            android:id="@+id/discover_menu"
+            android:title="@string/discover_lower" />
+    </group>
+    <group
+        android:id="@+id/bottom_menu"
+        android:checkableBehavior="single">
+        <item
+            android:id="@+id/show_connected"
+            android:title="@string/connected" />
+        <item
+            android:id="@+id/show_discovered"
+            android:title="@string/discovered" />
+        <item
+            android:id="@+id/show_network"
+            android:title="@string/network" />
+
+    </group>
+</menu>

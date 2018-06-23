@@ -1,4 +1,4 @@
-package com.example.near_library;
+package com.example.near_library.model;
 
 /** A set of constants used within the app. */
 public class Constants {

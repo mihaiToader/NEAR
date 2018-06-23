@@ -1,4 +1,4 @@
-package com.example.near_library;
+package com.example.near_library.model;
 
 import android.support.annotation.NonNull;
 
@@ -11,7 +11,7 @@ public class Endpoint {
     @NonNull
     private final String name;
 
-    Endpoint(@NonNull String id, @NonNull String name) {
+    public Endpoint(@NonNull String id, @NonNull String name) {
         this.id = id;
         this.name = name;
     }
@@ -43,5 +43,14 @@ public class Endpoint {
     @Override
     public String toString() {
         return String.format("Endpoint{id=%s, name=%s}", id, name);
+    }
+
+    public String encode() {
+        return String.format("%s;%s", id, name);
+    }
+
+    public static Endpoint decode(String encodingStr) {
+        String[] components = encodingStr.split(";");
+        return new Endpoint(components[0], components[1]);
     }
 }
