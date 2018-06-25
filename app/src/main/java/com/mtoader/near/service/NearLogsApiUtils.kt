@@ -6,4 +6,15 @@ object NearLogsApiUtils {
 
     val apiService: NearLogsApi
         get() = RetrofitClient.getClient(BASE_URL).create(NearLogsApi::class.java)
+
+    fun getApiService(baseUrl: String): NearLogsApi {
+        return RetrofitClient.getClient(addHttp(baseUrl)).create(NearLogsApi::class.java)
+    }
+
+    private fun addHttp(baseUrl: String): String {
+        if (!baseUrl.contains("http")) {
+            return "http://$baseUrl"
+        }
+        return baseUrl
+    }
 }

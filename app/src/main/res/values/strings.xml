@@ -33,4 +33,6 @@
     <string name="search">Search</string>
     <string name="network">Network</string>
     <string name="network_devices">Network devices</string>
+    <string name="session_name">Session name</string>
+    <string name="logging_app">Logging app</string>
 </resources>

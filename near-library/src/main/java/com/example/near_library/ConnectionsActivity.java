@@ -117,7 +117,7 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
     private final ConnectionLifecycleCallback mConnectionLifecycleCallback =
             new ConnectionLifecycleCallback() {
                 @Override
-                public void onConnectionInitiated(String endpointId, ConnectionInfo connectionInfo) {
+                public void onConnectionInitiated(@NonNull String endpointId, ConnectionInfo connectionInfo) {
                     logD(
                             String.format(
                                     "onConnectionInitiated(endpointId=%s, endpointName=%s)",
@@ -128,7 +128,7 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onConnectionResult(String endpointId, ConnectionResolution result) {
+                public void onConnectionResult(@NonNull String endpointId, @NonNull ConnectionResolution result) {
                     logD(String.format("onConnectionResponse(endpointId=%s, result=%s)", endpointId, result));
 
                     // We're no longer connecting
@@ -146,7 +146,7 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
                 }
 
                 @Override
-                public void onDisconnected(String endpointId) {
+                public void onDisconnected(@NonNull String endpointId) {
                     if (!mEstablishedConnections.containsKey(endpointId)) {
                         logW("Unexpected disconnection from endpoint " + endpointId);
                         return;

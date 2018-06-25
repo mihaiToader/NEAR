@@ -34,18 +34,11 @@ public class DSDV {
         this(orientedGraph, null);
     }
 
-    public void bellmanFord() {
+    private void bellmanFord() {
         int V = graph.getNrVertices(), E = graph.getNrEdges();
 
-
-        // Step 1: Initialize distances from src to all other
-        // vertices as INFINITE
         initialiseDistancesAndPredecessors();
 
-
-        // Step 2: Relax all edges |V| - 1 times. A simple
-        // shortest path from src to any other vertex can
-        // have at-most |V| - 1 edges
         List<Edge> edges = graph.getEdges();
         for (int i = 1; i < V; ++i) {
             for (int j = 0; j < E; ++j) {

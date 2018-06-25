@@ -20,8 +20,7 @@ import com.google.android.gms.nearby.connection.Strategy
 import com.mtoader.near.adapters.DevicesAdapter
 import com.mtoader.near.adapters.MessageAdapter
 import com.mtoader.near.model.NearPayloadType
-import com.mtoader.near.model.dto.Token
-import com.mtoader.near.model.dto.NearLogsUser
+import com.mtoader.near.model.dto.*
 import com.mtoader.near.model.message.MemberData
 import com.mtoader.near.model.message.Message
 import com.mtoader.near.service.NearLogsApi
@@ -30,7 +29,9 @@ import kotlinx.android.synthetic.main.activity_main.*
 import retrofit2.Call
 import retrofit2.Callback
 import retrofit2.Response
+import java.text.SimpleDateFormat
 import java.util.*
+import kotlin.collections.ArrayList
 
 
 class MainActivity : ConnectionsActivity() {
@@ -48,10 +49,13 @@ class MainActivity : ConnectionsActivity() {
     private lateinit var mDiscoverMenuItem: MenuItem
     private lateinit var mAPIService: NearLogsApi
 
-    private var nearLogsAddress: String = "http://192.168.0.103:8080"
-    private lateinit var session: String
+    private lateinit var mNearLogsAddress: String
+    private lateinit var mSession: String
 
-    private lateinit var token: Token
+    private lateinit var authorizationToken: AuthorizationToken
+    private val df = SimpleDateFormat("yyyy-MM-dd'T'HH:mm", Locale.ROOT)
+
+    private var logs: ArrayList<LogDto> = ArrayList()
     /**
      * The connection strategy we'll use for Nearby Connections. In this case, we've decided on
      * P2P_STAR, which is a combination of Bluetooth Classic and WiFi Hotspots.
@@ -94,15 +98,17 @@ class MainActivity : ConnectionsActivity() {
 
         currentData = MemberData(mName, getRandomColor(), null)
 
-        mAPIService = NearLogsApiUtils.apiService
+        mAPIService = NearLogsApiUtils.getApiService(mNearLogsAddress)
 
         initialiseDrawer()
         makeLoginToNearLogs()
 //        setState(State.SEARCHING)
 
+        sendNearLog("Application started", LogType.INFO, "onCreate")
     }
 
     override fun onBackPressed() {
+        sendNearLog("Back button pressed", LogType.INFO, "onBackPressed")
         val builder: AlertDialog.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
             AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
         } else {
@@ -167,6 +173,9 @@ class MainActivity : ConnectionsActivity() {
     private fun initialiseDeviceName() {
         mName = intent.getStringExtra("deviceName")
         deviceNameTextView.text = getString(R.string.device_name, mName)
+
+        mSession = intent.getStringExtra("sessionName")
+        mNearLogsAddress = intent.getStringExtra("loggingAddressApp")
     }
 
     private fun initialiseMessages() {
@@ -230,21 +239,25 @@ class MainActivity : ConnectionsActivity() {
     override fun logV(msg: String) {
         super.logV(msg)
         appendToLogs(toColor(msg, R.color.log_verbose))
+        sendNearLog(msg, LogType.INFO, "logV")
     }
 
     override fun logD(msg: String) {
         super.logD(msg)
         appendToLogs(toColor(msg, R.color.log_debug))
+        sendNearLog(msg, LogType.DEBUG, "logD")
     }
 
     override fun logW(msg: String) {
         super.logW(msg)
         appendToLogs(toColor(msg, R.color.log_warning))
+        sendNearLog(msg, LogType.WARNING, "logW")
     }
 
     override fun logE(msg: String, e: Throwable) {
         super.logE(msg, e)
         appendToLogs(toColor(msg, R.color.log_error))
+        sendNearLog(msg, LogType.ERROR, "logE")
     }
 
     private fun toColor(msg: String, color: Int): CharSequence {
@@ -625,16 +638,17 @@ class MainActivity : ConnectionsActivity() {
 
 
     private fun makeLoginToNearLogs() {
-        mAPIService.makeLogin(NearLogsUser("admin", "admin")).enqueue(object : Callback<Token> {
-            override fun onResponse(call: Call<Token>, response: Response<Token>) {
+        mAPIService.makeLogin(NearLogsUser("admin", "admin")).enqueue(object : Callback<AuthorizationToken> {
+            override fun onResponse(call: Call<AuthorizationToken>, response: Response<AuthorizationToken>) {
                 if (response.isSuccessful) {
                     logD("Logged at near logs!")
+                    authorizationToken = response.body()!!
+                    sendAllLogs()
                 }
             }
 
-            override fun onFailure(call: Call<Token>, t: Throwable) {
+            override fun onFailure(call: Call<AuthorizationToken>, t: Throwable) {
                 logD("Login failed!")
-
             }
         })
     }
@@ -647,4 +661,34 @@ class MainActivity : ConnectionsActivity() {
         mNetworkDevicesAdapter.removeDevice(endpoint)
     }
 
+    private fun sendAllLogs() {
+        for (log in logs) {
+            addLogToNearLogs(log)
+        }
+    }
+
+    private fun sendNearLog(message: String, type: LogType, origin: String) {
+        val log = LogDto(df.format(Date()), type, origin, message,
+                SessionDto(mSession, "None"),
+                DeviceDto(mName))
+        if (this::authorizationToken.isInitialized) {
+            addLogToNearLogs(log)
+        } else {
+            logs.add(log)
+        }
+    }
+
+    private fun addLogToNearLogs(log: LogDto) {
+        mAPIService.addLog(authorizationToken.token, log).enqueue(object : Callback<Void> {
+            override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                if (response.isSuccessful) {
+                    appendToLogs("Log send!")
+                }
+            }
+
+            override fun onFailure(call: Call<Void>, t: Throwable) {
+                appendToLogs("Log send failed!")
+            }
+        })
+    }
 }
