@@ -60,4 +60,13 @@ class DevicesAdapter(private val context: Context? = null) : BaseAdapter() {
         this.listOfDevices.remove(endpoint)
         notifyDataSetChanged()
     }
+
+    fun getEndpoint(endpointId: String): Endpoint? {
+        for (e: Endpoint in listOfDevices) {
+            if (e.id == endpointId) {
+                return e
+            }
+        }
+        return null
+    }
 }

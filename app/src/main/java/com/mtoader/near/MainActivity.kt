@@ -104,6 +104,11 @@ class MainActivity : ConnectionsActivity() {
         makeLoginToNearLogs()
 //        setState(State.SEARCHING)
 
+        Thread.setDefaultUncaughtExceptionHandler { paramThread, paramThrowable ->
+            logE(paramThrowable.toString(), paramThrowable)
+            System.exit(2)
+        }
+
         sendNearLog("Application started", LogType.INFO, "onCreate")
     }
 
@@ -159,7 +164,6 @@ class MainActivity : ConnectionsActivity() {
         networkDevicesListView.visibility = View.GONE
         networkDevicesListView.onItemClickListener = OnItemClickListener { parent, _, position, _ ->
             val entry: Endpoint = parent.getItemAtPosition(position) as Endpoint
-            Toast.makeText(this, "mue", Toast.LENGTH_LONG).show()
             onChatStarted(entry)
         }
     }
@@ -257,7 +261,7 @@ class MainActivity : ConnectionsActivity() {
     override fun logE(msg: String, e: Throwable) {
         super.logE(msg, e)
         appendToLogs(toColor(msg, R.color.log_error))
-        sendNearLog(msg, LogType.ERROR, "logE")
+        sendNearLog(e.printStackTrace().toString(), LogType.ERROR, "logE")
     }
 
     private fun toColor(msg: String, color: Int): CharSequence {
@@ -330,7 +334,7 @@ class MainActivity : ConnectionsActivity() {
 
         chattingUser = MemberData(endpoint.name, getRandomColor(), endpoint.id)
 
-        sendPayload(NearPayloadType.REQUEST_CHAT.toString(), "", endpoint.id)
+        sendPayload(NearPayloadType.REQUEST_CHAT.toString(), "", endpoint.id, currentData!!.id)
     }
 
     override fun onEndpointConnected(endpoint: Endpoint?) {
@@ -355,7 +359,9 @@ class MainActivity : ConnectionsActivity() {
     }
 
     override fun onEndpointDiscoverLost(endpoint: Endpoint?) {
-        mDiscoveredDevicesAdapter.removeDevice(endpoint!!)
+        if (endpoint != null) {
+            mDiscoveredDevicesAdapter.removeDevice(endpoint)
+        }
 
     }
 
@@ -363,7 +369,7 @@ class MainActivity : ConnectionsActivity() {
         Toast.makeText(
                 this, "Discovery started!", Toast.LENGTH_SHORT)
                 .show()
-        logW("Discovery started")
+        logD("Discovery started")
     }
 
     override fun onConnectionFailed(endpoint: Endpoint) {
@@ -395,9 +401,20 @@ class MainActivity : ConnectionsActivity() {
                 .show()
     }
 
+    override fun onSourceSet(endpoint: Endpoint?) {
+        if (endpoint != null) {
+            currentData!!.id = endpoint.id
+            setSourceToNearLogs(endpoint)
+        }
+    }
+
     override fun onPause() {
         super.onPause()
-//        stopAllEndpoints()
+        stopAdvertising()
+        stopDiscovering()
+        stopAllEndpoints()
+        clearGraphToNearLogs()
+        setPayloadHistoryToNearLogs()
     }
 
     override fun startAdvertising() {
@@ -499,6 +516,19 @@ class MainActivity : ConnectionsActivity() {
         return STRATEGY
     }
 
+    override fun onReceiveCommand(type: String?, data: String?, endpoint: Endpoint?) {
+        addPayloadToNearLogs(PayloadType.INCOMING, endpoint!!.name, type!!, data!!)
+    }
+
+    override fun onSendPayload(type: String?, data: String?, endpointId: String?) {
+        val endpoint = mNetworkDevicesAdapter.getEndpoint(endpointId!!)
+        if (endpoint != null) {
+            addPayloadToNearLogs(PayloadType.OUTGOING, endpoint.name, type!!, data!!)
+        } else {
+            addPayloadToNearLogs(PayloadType.OUTGOING, endpointId, type!!, data!!)
+        }
+    }
+
     /** States that the UI goes through.  */
     enum class State {
         UNKNOWN,
@@ -516,22 +546,30 @@ class MainActivity : ConnectionsActivity() {
             mMessageAdapter.add(Message(message, currentData, true))
             val count = messagesListView.count
             messagesListView.setSelection(count - 1)
-            sendPayload(NearPayloadType.CHAT_MESSAGE.toString(), message, chattingUser!!.id!!)
+            sendPayload(NearPayloadType.CHAT_MESSAGE.toString(), message, chattingUser!!.id!!, currentData!!.id)
         }
     }
 
     fun closeChat(view: View) {
         deniChat()
 
-        sendPayload(NearPayloadType.DISCONNECT_CHAT.toString(), "", chattingUser!!.id!!)
+        sendPayload(NearPayloadType.DISCONNECT_CHAT.toString(), "", chattingUser!!.id!!, currentData!!.id)
     }
 
     override fun onReceive(endpoint: Endpoint, command: Command?) {
         if (command != null) {
-            decisionMaking(NearPayloadType.valueOf(command.type), command.data, endpoint)
+            if (command.destinationId != null && command.destinationId != "") {
+                val dest = mNetworkDevicesAdapter.getEndpoint(command.destinationId)
+                if (dest != null) {
+                    decisionMaking(NearPayloadType.valueOf(command.type), command.data, dest)
+                } else {
+                    decisionMaking(NearPayloadType.valueOf(command.type), command.data, endpoint)
+                }
+            } else {
+                decisionMaking(NearPayloadType.valueOf(command.type), command.data, endpoint)
+            }
         }
     }
-
 
     private fun getRandomColor(): String {
         val r = Random()
@@ -551,27 +589,15 @@ class MainActivity : ConnectionsActivity() {
         builder.setTitle("Connection requested")
                 .setMessage("Accept chatting request from ${fromEndpoint.name}?")
                 .setPositiveButton(android.R.string.yes, { _, _ ->
-                    sendPayload(NearPayloadType.ACCEPT_CHAT.toString(), "", fromEndpoint.id)
+                    sendPayload(NearPayloadType.ACCEPT_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
                     acceptChat(fromEndpoint)
                 })
                 .setNegativeButton(android.R.string.no, { _, _ ->
-                    sendPayload(NearPayloadType.DENI_CHAT.toString(), "", fromEndpoint.id)
+                    sendPayload(NearPayloadType.DENI_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
                 })
                 .setIcon(android.R.drawable.ic_dialog_info)
                 .show()
     }
-
-//    private fun decodePath(path: String): List<Endpoint> {
-//        return if (path == "") listOf() else {
-//            val paths = path.split(",")
-//            val resPath: ArrayList<Endpoint> = ArrayList()
-//            for (endpointStr in paths) {
-//                val endpointSplit = endpointStr.split(";")
-//                resPath.add(Endpoint(endpointSplit[0], endpointSplit[1]))
-//            }
-//            resPath
-//        }
-//    }
 
     private fun decisionMaking(type: NearPayloadType, data: String, fromEndpoint: Endpoint) {
         when (type) {
@@ -653,12 +679,14 @@ class MainActivity : ConnectionsActivity() {
         })
     }
 
-    override fun onNetworkEndpointAdded(endpoint: Endpoint) {
-        mNetworkDevicesAdapter.addDevice(endpoint)
+    override fun onNetworkEndpointAdded(source: Endpoint, destination: Endpoint) {
+        mNetworkDevicesAdapter.addDevice(destination)
+        addEdgeToNearLogs(source, destination)
     }
 
-    override fun onNetworkEndpointRemoved(endpoint: Endpoint) {
-        mNetworkDevicesAdapter.removeDevice(endpoint)
+    override fun onNetworkEndpointRemoved(source: Endpoint, destination: Endpoint) {
+        mNetworkDevicesAdapter.removeDevice(destination)
+        removeNodeToNearLogs(destination)
     }
 
     private fun sendAllLogs() {
@@ -679,16 +707,111 @@ class MainActivity : ConnectionsActivity() {
     }
 
     private fun addLogToNearLogs(log: LogDto) {
-        mAPIService.addLog(authorizationToken.token, log).enqueue(object : Callback<Void> {
-            override fun onResponse(call: Call<Void>, response: Response<Void>) {
-                if (response.isSuccessful) {
-                    appendToLogs("Log send!")
+        if (this::authorizationToken.isInitialized) {
+            mAPIService.addLog(authorizationToken.token, log).enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    if (response.isSuccessful) {
+                    }
                 }
-            }
 
-            override fun onFailure(call: Call<Void>, t: Throwable) {
-                appendToLogs("Log send failed!")
-            }
-        })
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    appendToLogs("Log send failed!")
+                }
+            })
+        }
+    }
+
+    private fun setSourceToNearLogs(endpoint: Endpoint) {
+        if (this::authorizationToken.isInitialized) {
+            mAPIService.setSource(authorizationToken.token, NodeDto(endpoint.name, endpoint.id, name, mSession)).enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    if (response.isSuccessful) {
+                    }
+                }
+
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    appendToLogs("Set source failed!")
+                }
+            })
+        }
+    }
+
+    private fun addEdgeToNearLogs(source: Endpoint, destination: Endpoint) {
+        if (this::authorizationToken.isInitialized) {
+            mAPIService.addEdge(authorizationToken.token, EdgeWithNodesDto(
+                    NodeDto(source.name, source.id, name, mSession),
+                    NodeDto(destination.name, destination.id, name, mSession),
+                    name, mSession
+            )).enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    if (response.isSuccessful) {
+                    }
+                }
+
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    appendToLogs("Add edge failed!")
+                }
+            })
+        }
+    }
+
+    private fun removeNodeToNearLogs(endpoint: Endpoint) {
+        if (this::authorizationToken.isInitialized) {
+            mAPIService.removeNode(authorizationToken.token, NodeDto(endpoint.name, endpoint.id, name, mSession)).enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    if (response.isSuccessful) {
+                    }
+                }
+
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    appendToLogs("Remove node failed!")
+                }
+            })
+        }
+    }
+
+    private fun clearGraphToNearLogs() {
+        if (this::authorizationToken.isInitialized) {
+            mAPIService.clearGraph(authorizationToken.token, name, mSession).enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    if (response.isSuccessful) {
+                    }
+                }
+
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    appendToLogs("Clear graph failed!")
+                }
+            })
+        }
+    }
+
+    private fun addPayloadToNearLogs(type: PayloadType, destination: String, commandType: String, data: String) {
+        if (this::authorizationToken.isInitialized) {
+            mAPIService.addPayload(authorizationToken.token, PayloadDto(type, destination, commandType, data, name, mSession)).enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    if (response.isSuccessful) {
+                    }
+                }
+
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    appendToLogs("Send payload failed!")
+                }
+            })
+        }
+    }
+
+    private fun setPayloadHistoryToNearLogs() {
+        if (this::authorizationToken.isInitialized) {
+            mAPIService.setHistory(authorizationToken.token, name, mSession).enqueue(object : Callback<Void> {
+                override fun onResponse(call: Call<Void>, response: Response<Void>) {
+                    if (response.isSuccessful) {
+                    }
+                }
+
+                override fun onFailure(call: Call<Void>, t: Throwable) {
+                    appendToLogs("Set payload history failed!")
+                }
+            })
+        }
     }
 }

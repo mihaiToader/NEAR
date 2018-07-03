@@ -7,6 +7,8 @@ public class Command {
 
     private String path;
 
+    private String destinationId;
+
     public Command() {
     }
 
@@ -19,6 +21,13 @@ public class Command {
         this.type = type;
         this.data = data;
         this.path = path;
+    }
+
+    public Command(String type, String data, String destinationId, String path) {
+        this.type = type;
+        this.data = data;
+        this.path = path;
+        this.destinationId = destinationId;
     }
 
     public String getType() {
@@ -43,5 +52,13 @@ public class Command {
 
     public void setPath(String path) {
         this.path = path;
+    }
+
+    public String getDestinationId() {
+        return destinationId;
+    }
+
+    public void setDestinationId(String destinationId) {
+        this.destinationId = destinationId;
     }
 }
