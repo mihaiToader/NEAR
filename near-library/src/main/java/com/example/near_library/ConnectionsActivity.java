@@ -551,14 +551,18 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
     }
 
     protected void sendPayload(String type, String data, String endpointId, String destinationId) {
-        onSendPayload(type, data,endpointId);
+        onSendPayload(type, data, endpointId);
         if (mEstablishedConnections.get(endpointId) == null) {
             List<Endpoint> path = routing.getPathTo(endpointId);
-            Endpoint next = path.get(0);
-            path.remove(0);
-            String command = type + "#" + data + "#" + destinationId + "#" + routing.encodePath(path);
-            logD("Send payload to endpoint " + next);
-            send(Payload.fromBytes(command.getBytes()), next.getId());
+            if (path == null) {
+                onNetworkEndpointRemoved(new Endpoint(endpointId, ""));
+            } else {
+                Endpoint next = path.get(0);
+                path.remove(0);
+                String command = type + "#" + data + "#" + destinationId + "#" + routing.encodePath(path);
+                logD("Send payload to endpoint " + next);
+                send(Payload.fromBytes(command.getBytes()), next.getId());
+            }
         } else {
             String command = type + "#" + data + "#" + destinationId + "#";
             logD("Send payload to endpoint " + endpointId);
@@ -591,7 +595,7 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
     protected void onNetworkEndpointAdded(Endpoint source, Endpoint destination) {
     }
 
-    protected void onNetworkEndpointRemoved(Endpoint source, Endpoint endpoint) {
+    protected void onNetworkEndpointRemoved(Endpoint endpoint) {
     }
 
     protected void onSourceSet(Endpoint endpoint) {
@@ -817,6 +821,6 @@ public abstract class ConnectionsActivity extends AppCompatActivity {
 
     private void removeEdge(Endpoint source, Endpoint destination) {
         routing.removeEdge(source, destination);
-        onNetworkEndpointRemoved(source, destination);
+        onNetworkEndpointRemoved(destination);
     }
 }

@@ -32,6 +32,7 @@ import retrofit2.Response
 import java.text.SimpleDateFormat
 import java.util.*
 import kotlin.collections.ArrayList
+import kotlin.collections.HashMap
 
 
 class MainActivity : ConnectionsActivity() {
@@ -43,7 +44,7 @@ class MainActivity : ConnectionsActivity() {
     private var chattingUser: MemberData? = null
     private var currentData: MemberData? = null
     private var mIsChatActive: Boolean = false
-    private var mIsChatPending: Boolean = false
+    private var mChatDeniedToEndpoint: ArrayList<String> = ArrayList()
 
     private lateinit var mAdvertiseMenuItem: MenuItem
     private lateinit var mDiscoverMenuItem: MenuItem
@@ -324,6 +325,11 @@ class MainActivity : ConnectionsActivity() {
                 this, getString(R.string.chat_with, endpoint.name), Toast.LENGTH_SHORT)
                 .show()
 
+        if (mChatDeniedToEndpoint.contains(endpoint.id)) {
+            sendPayload(NearPayloadType.DENI_CHAT.toString(), "", endpoint.id, currentData!!.id)
+            mChatDeniedToEndpoint.remove(endpoint.id)
+        }
+
         devicesView.visibility = View.GONE
         chatView.visibility = View.VISIBLE
         chatInput.visibility = View.GONE
@@ -333,7 +339,7 @@ class MainActivity : ConnectionsActivity() {
         visibleDevicesText.visibility = View.GONE
 
         chattingUser = MemberData(endpoint.name, getRandomColor(), endpoint.id)
-
+        mIsChatActive = true
         sendPayload(NearPayloadType.REQUEST_CHAT.toString(), "", endpoint.id, currentData!!.id)
     }
 
@@ -581,22 +587,29 @@ class MainActivity : ConnectionsActivity() {
     }
 
     private fun createAlertDialog(fromEndpoint: Endpoint) {
-        val builder: AlertDialog.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+        if (mIsChatActive) {
+            sendPayload(NearPayloadType.DENI_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
         } else {
-            AlertDialog.Builder(this)
+            mIsChatActive = true
+
+            val builder: AlertDialog.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+            } else {
+                AlertDialog.Builder(this)
+            }
+            builder.setTitle("Connection requested")
+                    .setMessage("Accept chatting request from ${fromEndpoint.name}?")
+                    .setPositiveButton(android.R.string.yes, { _, _ ->
+                        sendPayload(NearPayloadType.ACCEPT_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
+                        acceptChat(fromEndpoint)
+                    })
+                    .setNegativeButton(android.R.string.no, { _, _ ->
+                        mIsChatActive = false
+                        sendPayload(NearPayloadType.DENI_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
+                    })
+                    .setIcon(android.R.drawable.ic_dialog_info)
+                    .show()
         }
-        builder.setTitle("Connection requested")
-                .setMessage("Accept chatting request from ${fromEndpoint.name}?")
-                .setPositiveButton(android.R.string.yes, { _, _ ->
-                    sendPayload(NearPayloadType.ACCEPT_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
-                    acceptChat(fromEndpoint)
-                })
-                .setNegativeButton(android.R.string.no, { _, _ ->
-                    sendPayload(NearPayloadType.DENI_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
-                })
-                .setIcon(android.R.drawable.ic_dialog_info)
-                .show()
     }
 
     private fun decisionMaking(type: NearPayloadType, data: String, fromEndpoint: Endpoint) {
@@ -627,17 +640,35 @@ class MainActivity : ConnectionsActivity() {
     }
 
     private fun acceptChat(fromEndpoint: Endpoint) {
-        mIsChatActive = true
+        if (mChatDeniedToEndpoint.contains(fromEndpoint.id)) {
+            sendPayload(NearPayloadType.DENI_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
+            mChatDeniedToEndpoint.remove(fromEndpoint.id)
+        } else {
+            mIsChatActive = true
 
-        devicesView.visibility = View.GONE
-        chatView.visibility = View.VISIBLE
-        chatInput.visibility = View.VISIBLE
+            devicesView.visibility = View.GONE
+            chatView.visibility = View.VISIBLE
+            chatInput.visibility = View.VISIBLE
+
+            loadingBar.visibility = View.GONE
+            waitingToAccept.visibility = View.GONE
+
+            visibleDevicesText.visibility = View.GONE
+            chattingUser = MemberData(fromEndpoint.name, getRandomColor(), fromEndpoint.id)
+        }
+    }
+
+    fun declineChat(view: View) {
+        mIsChatActive = false
+
+        mChatDeniedToEndpoint.add(chattingUser!!.id!!)
+        devicesView.visibility = View.VISIBLE
+        chatView.visibility = View.GONE
+
+        visibleDevicesText.visibility = View.VISIBLE
 
         loadingBar.visibility = View.GONE
         waitingToAccept.visibility = View.GONE
-
-        visibleDevicesText.visibility = View.GONE
-        chattingUser = MemberData(fromEndpoint.name, getRandomColor(), fromEndpoint.id)
     }
 
     private fun deniChat() {
@@ -684,9 +715,12 @@ class MainActivity : ConnectionsActivity() {
         addEdgeToNearLogs(source, destination)
     }
 
-    override fun onNetworkEndpointRemoved(source: Endpoint, destination: Endpoint) {
+    override fun onNetworkEndpointRemoved(destination: Endpoint) {
         mNetworkDevicesAdapter.removeDevice(destination)
         removeNodeToNearLogs(destination)
+        if (mIsChatActive && destination.id == chattingUser!!.id!!) {
+            deniChat()
+        }
     }
 
     private fun sendAllLogs() {

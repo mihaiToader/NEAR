@@ -85,8 +85,10 @@ public class Graph {
 
     public List<Edge> decodeEdges(String encodingString) {
         List<Edge> res = new ArrayList<>();
-        for (String encodingEdge : encodingString.split("@")) {
-            res.add(Edge.decodeEdge(encodingEdge));
+        if (!encodingString.equals("")) {
+            for (String encodingEdge : encodingString.split("@")) {
+                res.add(Edge.decodeEdge(encodingEdge));
+            }
         }
         return res;
     }

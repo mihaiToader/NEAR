@@ -57,7 +57,9 @@ class DevicesAdapter(private val context: Context? = null) : BaseAdapter() {
     }
 
     fun removeDevice(endpoint: Endpoint) {
-        this.listOfDevices.remove(endpoint)
+        if (getEndpoint(endpoint.id) != null) {
+            this.listOfDevices.remove(getEndpoint(endpoint.id))
+        }
         notifyDataSetChanged()
     }
 

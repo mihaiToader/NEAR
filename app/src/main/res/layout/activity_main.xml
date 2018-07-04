@@ -7,12 +7,6 @@
     android:layout_height="match_parent"
     tools:context="com.mtoader.near.MainActivity">
 
-    <ProgressBar
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:id="@+id/loadingBar"
-        android:indeterminate="true" />
-
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="match_parent"
@@ -49,6 +43,30 @@
             android:orientation="vertical">
 
             <LinearLayout
+                android:id="@+id/loadingBar"
+                android:layout_width="match_parent"
+                android:layout_height="match_parent"
+                android:orientation="vertical">
+
+                <ProgressBar
+                    android:id="@+id/progressBar"
+                    android:layout_width="match_parent"
+                    android:layout_height="match_parent"
+                    android:layout_weight="1"
+                    android:indeterminate="true" />
+
+                <Button
+                    android:id="@+id/buttonStopRequest"
+                    style="?android:attr/borderlessButtonStyle"
+                    android:layout_width="match_parent"
+                    android:layout_height="100dp"
+                    android:layout_weight="1"
+                    android:background="@android:color/holo_blue_dark"
+                    android:onClick="declineChat"
+                    android:text="@string/cancel" />
+            </LinearLayout>
+
+            <LinearLayout
                 android:id="@+id/chatView"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
@@ -62,10 +80,10 @@
                     android:divider="#fff" />
 
                 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+                    android:id="@+id/chatInput"
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:background="#fff"
-                    android:id="@+id/chatInput"
                     android:orientation="horizontal">
 
                     <ImageButton
