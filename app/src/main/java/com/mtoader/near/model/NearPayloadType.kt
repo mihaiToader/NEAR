@@ -20,4 +20,6 @@ enum class NearPayloadType {
 
     UPDATE_GRAPH,
 
+    SOS
+
 }

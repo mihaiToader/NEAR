@@ -30,8 +30,8 @@ class DeviceNameActivity : AppCompatActivity() {
         sharedPreferences = getSharedPreferences(MY_PREFS_NAME, Context.MODE_PRIVATE)
 
         deviceNameInput.setText(sharedPreferences.getString("deviceName", ""))
-        sessionName.setText(sharedPreferences.getString("sessionName", ""))
-        loggingAppAddress.setText(sharedPreferences.getString("loggingAddressApp", ""))
+        sessionName.setText(sharedPreferences.getString("sessionName", "S1"))
+        loggingAppAddress.setText(sharedPreferences.getString("loggingAddressApp", "192.168.192.101:8080"))
 
         nearStartIcon.setOnClickListener({
             if (debugFields) {

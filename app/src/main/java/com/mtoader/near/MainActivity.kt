@@ -1,6 +1,10 @@
 package com.mtoader.near
 
+import android.Manifest.permission.ACCESS_COARSE_LOCATION
 import android.app.AlertDialog
+import android.location.Location
+import android.location.LocationListener
+import android.location.LocationManager
 import android.os.Build
 import android.os.Bundle
 import android.support.annotation.RequiresApi
@@ -78,6 +82,10 @@ class MainActivity : ConnectionsActivity() {
     /** A random UID used as this device's endpoint name.  */
     private lateinit var mName: String
 
+    private lateinit var mLocation: Location
+
+    private lateinit var mLocationManager: LocationManager
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_main)
@@ -111,6 +119,9 @@ class MainActivity : ConnectionsActivity() {
         }
 
         sendNearLog("Application started", LogType.INFO, "onCreate")
+
+        mLocationManager = getSystemService(LOCATION_SERVICE) as LocationManager
+
     }
 
     override fun onBackPressed() {
@@ -586,6 +597,39 @@ class MainActivity : ConnectionsActivity() {
         return sb.toString().substring(0, 7)
     }
 
+    private fun createSOSDialog(fromEndpoint: Endpoint, data: String) {
+        val builder: AlertDialog.Builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            AlertDialog.Builder(this, android.R.style.Theme_Material_Dialog_Alert)
+        } else {
+            AlertDialog.Builder(this)
+        }
+        builder.setTitle("SOS requested")
+                .setMessage("SOS from ${fromEndpoint.name} at $data")
+                .setPositiveButton(android.R.string.yes, { _, _ ->
+                })
+                .setIcon(android.R.drawable.ic_dialog_info)
+                .show()
+
+    }
+
+    fun sendSos(view: View) {
+        try {
+            mLocation = mLocationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)
+            logD("Location: " + mLocation.latitude.toString() + " " + mLocation.longitude)
+        } catch (e: SecurityException) {
+            logE(e.message.toString(), e)
+        } catch (e: Exception) {
+            logE(e.message.toString(), e)
+        }
+        for (endpoint: Endpoint in mNetworkDevicesAdapter.getDevices()) {
+            if (this::mLocation.isInitialized) {
+                sendPayload(NearPayloadType.SOS.toString(), mLocation.latitude.toString() + " " + mLocation.longitude, endpoint.id, currentData!!.id)
+            } else {
+                sendPayload(NearPayloadType.SOS.toString(), "unknown position", endpoint.id, currentData!!.id)
+            }
+        }
+    }
+
     private fun createAlertDialog(fromEndpoint: Endpoint) {
         if (mIsChatActive) {
             sendPayload(NearPayloadType.DENI_CHAT.toString(), "", fromEndpoint.id, currentData!!.id)
@@ -635,6 +679,10 @@ class MainActivity : ConnectionsActivity() {
             }
 
             NearPayloadType.UPDATE_GRAPH -> {
+            }
+
+            NearPayloadType.SOS -> {
+                createSOSDialog(fromEndpoint, data)
             }
         }
     }

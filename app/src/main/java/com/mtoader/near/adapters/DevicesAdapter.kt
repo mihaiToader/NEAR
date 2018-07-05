@@ -71,4 +71,8 @@ class DevicesAdapter(private val context: Context? = null) : BaseAdapter() {
         }
         return null
     }
+
+    fun getDevices(): List<Endpoint> {
+        return listOfDevices
+    }
 }
